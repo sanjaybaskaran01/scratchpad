@@ -1,0 +1,250 @@
+/* ── Custom styles (Tailwind covers the rest) ──────────────────────────── */
+
+:root {
+  --nb-accent: #c5b358;
+}
+
+/* Font faces loaded via Google Fonts in HTML */
+body { font-family: 'Outfit', system-ui, sans-serif; }
+
+/* ── Filter tab active state ───────────────────────────────────────────── */
+.filter-tab { color: #a1a19f; }
+.filter-tab.active-tab {
+  color: #d4d4d2;
+  border-bottom: 1px solid var(--nb-accent);
+  /* Compensate so layout doesn't shift */
+  padding-bottom: calc(0.25rem - 1px);
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────────────── */
+#sidebar-list::-webkit-scrollbar       { width: 3px; }
+#sidebar-list::-webkit-scrollbar-track { background: transparent; }
+#sidebar-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+/* ── Main feed scrollbar ───────────────────────────────────────────────── */
+#main-content::-webkit-scrollbar       { width: 4px; }
+#main-content::-webkit-scrollbar-track { background: transparent; }
+#main-content::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+
+/* ── Detail card icon buttons ──────────────────────────────────────────── */
+.icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px; height: 30px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  color: #a1a19f;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.icon-action:hover {
+  color: #d4d4d2;
+  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
+}
+
+/* ── Clip highlight flash (duplicate/scroll-to) ────────────────────────── */
+@keyframes clip-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(197,179,88,0.5); transform: scale(1); }
+  30%  { box-shadow: 0 0 0 6px rgba(197,179,88,0.15); transform: scale(1.01); }
+  100% { box-shadow: 0 0 0 0 rgba(197,179,88,0); transform: scale(1); }
+}
+.clip-highlight { animation: clip-flash 0.7s ease; border-radius: 12px; }
+
+/* ── Prism code blocks ─────────────────────────────────────────────────── */
+pre[class*="language-"],
+code[class*="language-"] {
+  background: transparent !important;
+  text-shadow: none !important;
+}
+
+/* ── Scrollbar global ──────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   All transforms and opacity changes — no layout-shifting properties.
+   Durations: 150–300 ms for UI feedback; 3 s for ambient pulse only.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ── 1. Clip card entrance / exit ─────────────────────────────────────── */
+@keyframes clip-enter-kf {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes clip-exit-kf {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(16px); }
+}
+
+.clip-enter {
+  animation: clip-enter-kf 220ms ease-out both;
+}
+.clip-exit {
+  animation: clip-exit-kf 180ms ease-in both;
+}
+
+
+/* ── 2. Sidebar item entrance ─────────────────────────────────────────── */
+@keyframes sidebar-enter-kf {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.sidebar-enter {
+  animation: sidebar-enter-kf 180ms ease-out both;
+}
+
+
+/* ── 3. Paste zone icon breathing pulse ───────────────────────────────── */
+@keyframes paste-pulse-kf {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.04); }
+}
+
+.paste-zone-pulse {
+  animation: paste-pulse-kf 3s ease-in-out infinite;
+}
+
+
+/* ── 5. Toast — vertical slide compatible with Tailwind's transform system ─ */
+/*
+   Tailwind composes transforms via CSS custom properties (--tw-translate-x etc.).
+   Overriding `transform` directly breaks the -translate-x-1/2 centering.
+   Instead we set the custom property that Tailwind reads.
+*/
+.toast {
+  --tw-translate-y: 0.5rem; /* hidden: 8px below resting position */
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.toast.show {
+  --tw-translate-y: 0;      /* visible: resting position */
+}
+
+
+/* ── 6. Modal image scale-in ──────────────────────────────────────────── */
+#img-modal img {
+  transform: scale(0.92);
+  opacity: 0;
+  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+}
+.modal-visible img {
+  transform: scale(1);
+  opacity: 1;
+}
+
+
+/* ── 7. Copy button tactile feedback ──────────────────────────────────── */
+@keyframes btn-copy-pop-kf {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.btn-copy.copied-anim {
+  animation: btn-copy-pop-kf 150ms ease-out both;
+}
+
+
+/* ── 8. Scratchpad / detail card spring entrance ──────────────────────── */
+@keyframes scratchpad-enter-kf {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.scratchpad-enter {
+  animation: scratchpad-enter-kf 200ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+
+/* ── 9. Storage bar — richer easing on width + colour changes ─────────── */
+#storage-bar {
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.4s ease;
+}
+
+
+/* ── 10. Image lazy-load fade ─────────────────────────────────────────── */
+@keyframes img-fade-in-kf {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.img-fade-in {
+  animation: img-fade-in-kf 300ms ease-out both;
+}
+
+
+/* ── 11. Detail card focus ring (box-shadow, no layout shift) ─────────── */
+.detail-card:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(197, 179, 88, 0.3);
+  transition: box-shadow 150ms ease;
+}
+
+
+/* ── 12. Shortcut overlay panel scale ─────────────────────────────────── */
+/*
+   The overlay backdrop already transitions opacity via Tailwind.
+   We scale the inner panel to give the dialog a sense of depth.
+*/
+.shortcut-panel {
+  transform: scale(0.96);
+  transition: transform 150ms ease-out;
+}
+#shortcut-overlay:not(.opacity-0) .shortcut-panel {
+  transform: scale(1);
+}
+
+
+/* ── Reduced-motion: disable all animations / transitions ─────────────── */
+/*
+   Honour the user's OS-level preference. All properties that animate
+   position or appearance are suppressed; interactive transitions
+   (hover colour changes, focus rings) are also collapsed to instant.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .clip-enter,
+  .clip-exit,
+  .sidebar-enter,
+  .paste-zone-pulse,
+  .scratchpad-enter,
+  .img-fade-in,
+  .btn-copy.copied-anim,
+  .clip-highlight {
+    animation: none !important;
+  }
+
+  .toast,
+  .toast.show {
+    transform: translateY(0) !important;
+    transition: opacity 200ms !important;
+  }
+
+  #img-modal img,
+  .modal-visible img {
+    transform: scale(1) !important;
+    opacity: 1 !important;
+    transition: opacity 200ms ease-out !important;
+  }
+
+  .shortcut-panel,
+  #shortcut-overlay:not(.opacity-0) .shortcut-panel {
+    transform: scale(1) !important;
+    transition: none !important;
+  }
+
+  #storage-bar {
+    transition: none !important;
+  }
+
+  .detail-card:focus {
+    transition: none !important;
+  }
+}

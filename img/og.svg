@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#1a1a1a"/>
+
+  <!-- Subtle grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-width="0.3" opacity="0.06"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Top accent line -->
+  <rect x="0" y="0" width="1200" height="3" fill="#c5b358"/>
+
+  <!-- Left sidebar mock (decorative) -->
+  <rect x="72" y="80" width="200" height="470" rx="10" fill="#141414" opacity="0.6"/>
+  <rect x="90" y="110" width="164" height="36" rx="6" fill="#262626" opacity="0.8"/>
+  <rect x="90" y="154" width="130" height="28" rx="6" fill="#262626" opacity="0.5"/>
+  <rect x="90" y="190" width="148" height="28" rx="6" fill="#262626" opacity="0.4"/>
+  <rect x="90" y="226" width="120" height="28" rx="6" fill="#262626" opacity="0.3"/>
+  <!-- Accent on selected item -->
+  <rect x="90" y="110" width="3" height="36" rx="1.5" fill="#c5b358"/>
+
+  <!-- Main card mock (decorative) -->
+  <rect x="312" y="80" width="558" height="200" rx="10" fill="#262626" opacity="0.7"/>
+  <rect x="336" y="106" width="80" height="14" rx="4" fill="#c5b358" opacity="0.5"/>
+  <rect x="336" y="130" width="510" height="10" rx="3" fill="#d4d4d2" opacity="0.25"/>
+  <rect x="336" y="150" width="460" height="10" rx="3" fill="#d4d4d2" opacity="0.2"/>
+  <rect x="336" y="170" width="490" height="10" rx="3" fill="#d4d4d2" opacity="0.2"/>
+  <rect x="336" y="190" width="380" height="10" rx="3" fill="#d4d4d2" opacity="0.15"/>
+  <rect x="336" y="218" width="200" height="10" rx="3" fill="#c5b358" opacity="0.3"/>
+  <rect x="336" y="238" width="310" height="10" rx="3" fill="#d4d4d2" opacity="0.15"/>
+
+  <!-- Central branding -->
+  <text x="600" y="370"
+        text-anchor="middle"
+        font-family="ui-sans-serif,system-ui,-apple-system,sans-serif"
+        font-size="96" font-weight="300" letter-spacing="-2"
+        fill="#d4d4d2">scratchpad</text>
+
+  <!-- Gold underline -->
+  <rect x="440" y="390" width="320" height="2.5" rx="1.25" fill="#c5b358" opacity="0.8"/>
+
+  <!-- Tagline -->
+  <text x="600" y="440"
+        text-anchor="middle"
+        font-family="ui-sans-serif,system-ui,-apple-system,sans-serif"
+        font-size="26" font-weight="300"
+        fill="#a1a19f">Paste code, images &amp; text. No backend. No account.</text>
+
+  <!-- URL -->
+  <text x="600" y="580"
+        text-anchor="middle"
+        font-family="ui-monospace,'Fira Code',monospace"
+        font-size="18"
+        fill="#c5b358" opacity="0.55">sanjaybaskaran01.github.io/scratchpad</text>
+
+  <!-- Bottom accent line -->
+  <rect x="0" y="627" width="1200" height="3" fill="#c5b358" opacity="0.4"/>
+</svg>

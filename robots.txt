@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sanjaybaskaran01.github.io/scratchpad/sitemap.xml

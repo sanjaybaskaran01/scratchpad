@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#1a1a1a"/>
+  <!-- Cursor bar accent -->
+  <rect x="6" y="6" width="20" height="2.5" rx="1.25" fill="#c5b358"/>
+  <!-- Letter t -->
+  <text x="16" y="25" text-anchor="middle"
+        font-family="'Fira Code',ui-monospace,monospace"
+        font-size="17" font-weight="500" fill="#d4d4d2">t</text>
+  <!-- Blinking cursor dot -->
+  <rect x="20" y="18" width="2.5" height="9" rx="1" fill="#c5b358" opacity="0.9"/>
+</svg>
