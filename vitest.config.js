@@ -12,7 +12,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
-      include: ['js/clips.js', 'js/storage.js', 'js/sharing.js'],
+      include: ['src/lib/clips.js', 'src/lib/storage.js', 'src/lib/sharing.js'],
       exclude: [],
     },
   },

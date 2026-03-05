@@ -1,21 +1,21 @@
 /**
- * clips.test.js — unit tests for js/clips.js
+ * clips.test.js — unit tests for src/lib/clips.js
  *
- * Covers: hashing, credential detection, language detection,
+ * Covers: hashing, credential detection, langLabel/langToExt,
  *         content-type detection, compression round-trips.
+ * Note: detectLanguage() has been removed — hljs handles detection at paste time.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   hashText, hashBlob,
   detectCredentials,
-  detectLanguage, langLabel, langToExt,
+  langLabel, langToExt,
   detectType, extractText, extractTextFile,
   compressText, decompressText,
-} from '../../js/clips.js';
+} from '../../src/lib/clips.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-/** Build a minimal ClipboardData-like object for detectType / extractText. */
 function makeClipData({ items = [], types = [], data = {} } = {}) {
   return {
     items: items.map(({ kind, type, file }) => ({
@@ -138,46 +138,6 @@ describe('detectCredentials', () => {
   });
 });
 
-// ── detectLanguage ────────────────────────────────────────────────────────────
-
-describe('detectLanguage', () => {
-  const cases = [
-    ['python',     'import os\ndef greet(name):\n    print(f"Hello {name}")'],
-    ['javascript', 'const greet = (name) => console.log(name);\nlet x = 1;'],
-    // Pure TS syntax — no JS keywords (const/let/var/function) that would match first
-    ['typescript', 'interface Greeting {\n  message: string;\n}\ntype Status = "ok" | "error";'],
-    ['json',       '{"name": "scratchpad", "version": "1.0.0"}'],
-    ['sql',        'SELECT id, name FROM users WHERE active = TRUE ORDER BY name;'],
-    ['bash',       '#!/usr/bin/bash\necho "Hello World"\nexport PATH=$PATH:/usr/local/bin'],
-    // No `import "..."` at line start (would match Python's `import ` pattern)
-    ['go',         'package main\n\nfunc add(a, b int) int {\n\treturn a + b\n}'],
-    // No `let` (JS) or `key: value` at line start (YAML). Use match expression.
-    ['rust',       'fn fibonacci(n: u32) -> u32 {\n    match n {\n        0 => 0,\n        _ => fibonacci(n-1) + fibonacci(n-2),\n    }\n}'],
-    ['css',        '.container { display: flex; align-items: center; }'],
-    ['html',       '<!DOCTYPE html><html><body><h1>Hello</h1></body></html>'],
-    ['yaml',       'name: scratchpad\nversion: 1.0.0\ndependencies: []'],
-    ['toml',       '[package]\nname = "scratchpad"\nversion = "1.0.0"\n'],
-  ];
-
-  cases.forEach(([lang, sample]) => {
-    it(`detects ${lang}`, () => {
-      expect(detectLanguage(sample)).toBe(lang);
-    });
-  });
-
-  it('returns null for plain prose', () => {
-    expect(detectLanguage('The quick brown fox jumps over the lazy dog.')).toBeNull();
-  });
-
-  it('returns null for empty string', () => {
-    expect(detectLanguage('')).toBeNull();
-  });
-
-  it('returns null for falsy input', () => {
-    expect(detectLanguage(null)).toBeNull();
-  });
-});
-
 // ── langLabel ──────────────────────────────────────────────────────────────────
 
 describe('langLabel', () => {
@@ -235,7 +195,7 @@ describe('detectType', () => {
   it('prioritises image over text when both are present', () => {
     const cd = makeClipData({
       items: [
-        { kind: 'file', type: 'image/png', file: new Blob() },
+        { kind: 'file', type: 'image/png',  file: new Blob() },
         { kind: 'file', type: 'text/plain', file: new Blob() },
       ],
       types: ['Files'],
@@ -329,17 +289,5 @@ describe('compressText / decompressText', () => {
   it('decompressText returns content directly for non-compressed clips', () => {
     const clip = { compressed: false, content: 'plain text' };
     expect(decompressText(clip)).toBe('plain text');
-  });
-
-  it('returns original content when LZString is unavailable', () => {
-    const savedLZ = global.LZString;
-    global.LZString = undefined;
-    try {
-      const long = 'b'.repeat(2000);
-      const result = compressText(long);
-      expect(result.compressed).toBe(false);
-    } finally {
-      global.LZString = savedLZ;
-    }
   });
 });

@@ -1,33 +1,21 @@
 /**
- * storage.test.js — integration tests for js/storage.js
- *
- * Each test gets a completely fresh IndexedDB instance + fresh module so
- * the module-level `db` cache is reset between tests.
- *
- * Covers: saveTextClip, saveImageClip, findByHash, getAllClips,
- *         deleteClip, pinClip, unpinClip, purgeExpired,
- *         getSettings / saveSetting, estimateStorageUsed.
+ * storage.test.js — integration tests for src/lib/storage.js
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 
-// Re-import a fresh storage module before each test for full isolation.
 let storage;
 
 beforeEach(async () => {
-  // 1. Clear the Vitest module cache so `db = null` is reset inside storage.js
   vi.resetModules();
 
-  // 2. Provide a fresh IndexedDB namespace
   global.indexedDB  = new IDBFactory();
   global.IDBKeyRange = IDBKeyRange;
 
-  // 3. Clear web storage caches used by the session-clip and settings paths
   sessionStorage.clear();
   localStorage.clear();
 
-  // 4. Import a fresh copy of the storage module
-  storage = await import('../../js/storage.js');
+  storage = await import('../../src/lib/storage.js');
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -75,10 +63,8 @@ describe('saveTextClip', () => {
       content: 'ephemeral text',
       ephemeral: true,
     });
-    // Should appear in getAllClips (merges both sources)
     const all = await storage.getAllClips();
     expect(all.some(c => c.id === clip.id)).toBe(true);
-    // Should be findable by hash if hash is provided
   });
 
   it('non-ephemeral clips are retrievable via getAllClips', async () => {
@@ -114,9 +100,6 @@ describe('saveImageClip', () => {
     const blob = new Blob(['<png-bytes>'], { type: 'image/png' });
     const clip = await storage.saveImageClip(blob);
     const retrieved = await storage.getBlob(clip.blobId);
-    // fake-indexeddb uses Node.js structuredClone which doesn't preserve the
-    // jsdom Blob prototype — but the record IS stored and returned (non-null).
-    // In a real browser IndexedDB, this would be instanceof Blob.
     expect(retrieved).not.toBeNull();
     expect(retrieved).not.toBeUndefined();
   });
@@ -168,7 +151,6 @@ describe('getAllClips', () => {
   });
 
   it('returns clips sorted newest first', async () => {
-    // Save two clips with artificial timestamps
     await makeTextClip({ createdAt: 1_000_000, ephemeral: false });
     await makeTextClip({ createdAt: 2_000_000, ephemeral: false });
 
@@ -178,7 +160,6 @@ describe('getAllClips', () => {
   });
 
   it('merges session clips and IDB clips (session clip wins on duplicate id)', async () => {
-    // Save same id to IDB then to session (session should override)
     const shared_id = 'clip_shared_123';
     await makeTextClip({ id: shared_id, content: 'from-idb',     ephemeral: false });
     await storage.saveTextClip({ id: shared_id, content: 'from-session', ephemeral: true });
@@ -250,7 +231,7 @@ describe('pinClip', () => {
 describe('unpinClip', () => {
   it('sets pinned=false and gives clip a finite TTL', async () => {
     const clip = await makeTextClip({ pinned: true, ephemeral: false });
-    await storage.pinClip(clip.id); // ensure it is pinned in IDB
+    await storage.pinClip(clip.id);
 
     const unpinned = await storage.unpinClip(clip.id);
     expect(unpinned.pinned).toBe(false);
@@ -271,11 +252,9 @@ describe('purgeExpired', () => {
       content: 'stale',
       ephemeral: false,
       pinned: false,
-      // expiresAt is set by storage.js based on createdAt; trick it by providing createdAt far in the past
       createdAt: Date.now() - 48 * 60 * 60 * 1000, // 48h ago
     });
 
-    // expiresAt = createdAt + 24h, which is 24h ago → expired
     const count = await storage.purgeExpired();
     expect(count).toBeGreaterThanOrEqual(1);
 
@@ -285,7 +264,7 @@ describe('purgeExpired', () => {
 
   it('keeps pinned clips even if they appear expired', async () => {
     const clip = await makeTextClip({ pinned: true, ephemeral: false });
-    await storage.pinClip(clip.id); // expiresAt = Infinity
+    await storage.pinClip(clip.id);
 
     const count = await storage.purgeExpired();
     const all = await storage.getAllClips();

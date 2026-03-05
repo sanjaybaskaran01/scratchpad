@@ -3,18 +3,14 @@
  *
  * Format: #v1/<lz-uri-encoded-json>
  * Payload: { type, content, language, label }
- *
- * Max practical shareable text: ~8KB raw (compresses to stay under URL limits)
  */
+import LZString from 'lz-string';
 
-const MAX_SHAREABLE_BYTES = 8 * 1024; // 8KB raw text limit for URL sharing
+const MAX_SHAREABLE_BYTES = 8 * 1024; // 8 KB raw text limit
 const HASH_PREFIX = 'v1/';
 
-/**
- * Encode a clip for URL sharing. Returns null if too large or image.
- */
 export function encodeForURL(clip, rawText) {
-  if (!rawText || !window.LZString) return null;
+  if (!rawText) return null;
 
   const byteLen = new Blob([rawText]).size;
   if (byteLen > MAX_SHAREABLE_BYTES) return null;
@@ -22,7 +18,7 @@ export function encodeForURL(clip, rawText) {
   const payload = JSON.stringify({
     t: rawText,
     l: clip.language || null,
-    n: clip.label || null,
+    n: clip.label    || null,
   });
 
   try {
@@ -33,11 +29,8 @@ export function encodeForURL(clip, rawText) {
   }
 }
 
-/**
- * Decode a shared clip from the URL hash. Returns clip-like object or null.
- */
 export function decodeFromURL(hash) {
-  if (!hash || !window.LZString) return null;
+  if (!hash) return null;
   if (!hash.startsWith(HASH_PREFIX)) return null;
 
   const encoded = hash.slice(HASH_PREFIX.length);
@@ -53,9 +46,6 @@ export function decodeFromURL(hash) {
   }
 }
 
-/**
- * Copy text to clipboard. Returns true on success.
- */
 export async function copyToClipboard(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try {
@@ -63,7 +53,6 @@ export async function copyToClipboard(text) {
       return true;
     } catch {}
   }
-  // Fallback: execCommand
   const ta = document.createElement('textarea');
   ta.value = text;
   ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
@@ -74,9 +63,6 @@ export async function copyToClipboard(text) {
   return ok;
 }
 
-/**
- * Try to generate a share URL for a clip. Returns { url, tooBig, isImage }.
- */
 export function getShareInfo(clip, rawText) {
   if (clip.type === 'image') return { url: null, isImage: true };
   const url = encodeForURL(clip, rawText);

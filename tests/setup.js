@@ -2,11 +2,8 @@
  * Global test setup — runs before every unit test file.
  */
 import { vi } from 'vitest';
-import LZString from 'lz-string';
-
-// ── LZString (real implementation, not a mock) ────────────────────────────────
-// clips.js and sharing.js check `window.LZString`; jsdom maps window → global.
-global.LZString = LZString;
+// Sets all global IDB types (IDBRequest, IDBFactory, etc.) needed by the `idb` package.
+import 'fake-indexeddb/auto';
 
 // ── Web APIs missing from jsdom ───────────────────────────────────────────────
 
@@ -15,7 +12,6 @@ global.URL.createObjectURL = vi.fn(() => 'blob:mock-object-url');
 global.URL.revokeObjectURL = vi.fn();
 
 // Blob.prototype.arrayBuffer — jsdom's sliced Blobs are missing this method.
-// Use FileReader (which jsdom does implement) as the backing implementation.
 if (!Blob.prototype.arrayBuffer) {
   Blob.prototype.arrayBuffer = function () {
     return new Promise((resolve, reject) => {
@@ -35,9 +31,7 @@ HTMLCanvasElement.prototype.toBlob = vi.fn(function (callback, type) {
   callback(new Blob(['<mock-pixel-data>'], { type: type || 'image/png' }));
 });
 
-// localStorage — Vitest passes --localstorage-file without a valid path which
-// causes jsdom to create a broken Storage object (missing .clear, etc.).
-// Replace it with a complete in-memory implementation.
+// localStorage — in-memory implementation
 const _lsData = {};
 Object.defineProperty(global, 'localStorage', {
   value: {

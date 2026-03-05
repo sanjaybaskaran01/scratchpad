@@ -1,16 +1,10 @@
 /**
- * sharing.test.js — unit tests for js/sharing.js
- *
- * Covers: URL encode/decode round-trip, size limits,
- *         getShareInfo branching logic.
+ * sharing.test.js — unit tests for src/lib/sharing.js
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   encodeForURL, decodeFromURL, getShareInfo, MAX_SHAREABLE_BYTES,
-} from '../../js/sharing.js';
-
-// In jsdom, window.location.origin = 'http://localhost:3000'
-// encodeForURL builds: origin + pathname + '#v1/' + encoded
+} from '../../src/lib/sharing.js';
 
 const CLIP_TEXT = { type: 'text', language: 'javascript', label: 'My snippet', id: 'clip_1' };
 const SHORT_TEXT = 'const x = 42;';
@@ -35,26 +29,14 @@ describe('encodeForURL', () => {
   });
 
   it('accepts text exactly at the 8 KB limit', () => {
-    // Build a string that is exactly MAX_SHAREABLE_BYTES bytes (ASCII = 1 byte/char)
     const atLimit = 'a'.repeat(MAX_SHAREABLE_BYTES);
     const url = encodeForURL(CLIP_TEXT, atLimit);
-    // May or may not produce a URL depending on compressed size; it should not throw
     expect(url === null || typeof url === 'string').toBe(true);
-  });
-
-  it('returns null when LZString is unavailable', () => {
-    const saved = global.LZString;
-    global.LZString = undefined;
-    try {
-      expect(encodeForURL(CLIP_TEXT, SHORT_TEXT)).toBeNull();
-    } finally {
-      global.LZString = saved;
-    }
   });
 
   it('includes language and label in the encoded payload (round-trip check)', () => {
     const url = encodeForURL(CLIP_TEXT, SHORT_TEXT);
-    const hash = url.split('#')[1]; // 'v1/<encoded>'
+    const hash = url.split('#')[1];
     const decoded = decodeFromURL(hash);
     expect(decoded.language).toBe('javascript');
     expect(decoded.label).toBe('My snippet');
@@ -91,16 +73,6 @@ describe('decodeFromURL', () => {
 
   it('returns null for a corrupted encoded string', () => {
     expect(decodeFromURL('v1/!!!not-valid-base64!!!')).toBeNull();
-  });
-
-  it('returns null when LZString is unavailable', () => {
-    const saved = global.LZString;
-    global.LZString = undefined;
-    try {
-      expect(decodeFromURL('v1/anything')).toBeNull();
-    } finally {
-      global.LZString = saved;
-    }
   });
 
   it('preserves null language / label from encode', () => {

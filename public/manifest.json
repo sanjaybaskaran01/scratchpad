@@ -1,0 +1,20 @@
+{
+  "id": "/scratchpad/",
+  "name": "scratchpad",
+  "short_name": "scratchpad",
+  "description": "Paste code, images, and text. Share instantly via URL. No backend, no account.",
+  "start_url": "/scratchpad/",
+  "scope": "/scratchpad/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "icons": [
+    {
+      "src": "img/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["developer", "productivity", "utilities"]
+}
