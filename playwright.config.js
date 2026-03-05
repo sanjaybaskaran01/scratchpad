@@ -19,8 +19,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'vite preview --port 7823 --base /typehere/',
-    url: 'http://localhost:7823/typehere/',
+    command: 'vite preview --port 7823',
+    url: 'http://localhost:7823',
     reuseExistingServer: true,
     timeout: 30_000,
   },

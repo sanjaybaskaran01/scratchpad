@@ -7,7 +7,7 @@
   import Scratchpad    from './Scratchpad.svelte';
   import ManualEntry   from './ManualEntry.svelte';
 
-  let { onCopy, onShare, onDownload, onPin, onDelete, onScratchpadCommit, onManualSave, onEdit, onChangeLanguage, onImagePaste } = $props();
+  let { onCopy, onShare, onDownload, onPin, onDelete, onScratchpadCommit, onManualSave, onEdit, onChangeLanguage, onImagePaste, onP2PSend } = $props();
 
   const showFeed = $derived(
     visibleClips.length > 0 || uiState.scratchpadActive || uiState.manualEntryActive
@@ -35,6 +35,7 @@
           {onDelete}
           {onEdit}
           {onChangeLanguage}
+          {onP2PSend}
         />
       {/each}
     </div>

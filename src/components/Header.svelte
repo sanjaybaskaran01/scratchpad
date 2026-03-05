@@ -1,7 +1,7 @@
 <script>
   import { clipsState } from '../state/clips.svelte.js';
 
-  let { onNewClip, searchInputEl = $bindable() } = $props();
+  let { onNewClip, onReceive, searchInputEl = $bindable() } = $props();
 
   const isSearching = $derived(clipsState.searchQuery.trim().length > 0);
 </script>
@@ -67,6 +67,14 @@
         </button>
       {/if}
     </div>
+    <button
+      class="flex items-center gap-1.5 px-3 py-1.5 bg-nb-card border border-white/10 rounded text-xs text-nb-muted hover:text-nb-text hover:border-white/20 transition-colors"
+      title="Receive a clip via P2P"
+      onclick={onReceive}
+    >
+      <span class="material-symbols-outlined" style="font-size:14px">download_for_offline</span>
+      Receive
+    </button>
     <button
       class="flex items-center gap-1.5 px-3 py-1.5 bg-nb-accent/10 border border-nb-accent/20 rounded text-xs text-nb-accent hover:bg-nb-accent/20 transition-colors"
       title="New empty clip (n)"

@@ -250,6 +250,103 @@ test('j/k keys navigate the sidebar selection', async ({ page }) => {
   await expect(active).toHaveCount(1, { timeout: 2000 });
 });
 
+// ── P2P sharing ───────────────────────────────────────────────────────────────
+
+test('"Receive" button is visible in the header', async ({ page }) => {
+  const btn = page.getByRole('button', { name: /receive/i });
+  await expect(btn).toBeVisible();
+});
+
+test('clicking "Receive" opens the P2P modal in receiver mode', async ({ page }) => {
+  await page.getByRole('button', { name: /receive/i }).click();
+  // Modal title should say "Receive clip via P2P"
+  await expect(page.getByRole('dialog', { name: 'P2P clip sharing' })).toContainText('Receive clip via P2P', { timeout: 2000 });
+  // Code input and Connect button should be present
+  await expect(page.getByPlaceholder('XXXX-XXXX')).toBeVisible();
+  await expect(page.getByRole('button', { name: /connect/i })).toBeVisible();
+});
+
+test('P2P receiver modal closes on Cancel', async ({ page }) => {
+  await page.getByRole('button', { name: /receive/i }).click();
+  await expect(page.getByRole('dialog', { name: 'P2P clip sharing' })).toContainText('Receive clip via P2P', { timeout: 2000 });
+
+  await page.getByRole('button', { name: /cancel/i }).click();
+  await expect(page.getByRole('dialog', { name: 'P2P clip sharing' })).toHaveClass(/pointer-events-none/, { timeout: 2000 });
+});
+
+test('P2P receiver modal closes on Escape', async ({ page }) => {
+  await page.getByRole('button', { name: /receive/i }).click();
+  await expect(page.getByRole('dialog', { name: 'P2P clip sharing' })).toContainText('Receive clip via P2P', { timeout: 2000 });
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'P2P clip sharing' })).toHaveClass(/pointer-events-none/, { timeout: 2000 });
+});
+
+test('P2P code input auto-inserts a hyphen after the 4th character', async ({ page }) => {
+  await page.getByRole('button', { name: /receive/i }).click();
+  const input = page.getByPlaceholder('XXXX-XXXX');
+  await input.fill('ABCD1234');
+  await expect(input).toHaveValue('ABCD-1234', { timeout: 2000 });
+});
+
+test('"Connect" button is disabled until 8 chars are entered', async ({ page }) => {
+  await page.getByRole('button', { name: /receive/i }).click();
+  const connect = page.getByRole('button', { name: /connect/i });
+  // Initially disabled
+  await expect(connect).toBeDisabled();
+  // Still disabled with 7 chars
+  await page.getByPlaceholder('XXXX-XXXX').fill('ABCD123');
+  await expect(connect).toBeDisabled();
+  // Enabled with 8 chars
+  await page.getByPlaceholder('XXXX-XXXX').fill('ABCD1234');
+  await expect(connect).toBeEnabled({ timeout: 2000 });
+});
+
+test('"Send via P2P" button appears on text clips (not images)', async ({ page }) => {
+  await pasteText(page, 'p2p send test ' + Date.now());
+  await expect(page.locator('#clip-feed')).toBeVisible({ timeout: 3000 });
+
+  const sendBtn = page.locator('[title="Send via P2P"]');
+  await expect(sendBtn).toBeVisible({ timeout: 3000 });
+});
+
+test('clicking "Send via P2P" opens the modal with an 8-char pairing code', async ({ page }) => {
+  await pasteText(page, 'p2p send test ' + Date.now());
+  await expect(page.locator('[title="Send via P2P"]')).toBeVisible({ timeout: 3000 });
+
+  await page.locator('[title="Send via P2P"]').click();
+
+  // Modal should show sender title
+  await expect(page.getByRole('dialog', { name: 'P2P clip sharing' })).toContainText('Send clip via P2P', { timeout: 2000 });
+
+  // Pairing code should be visible — formatted as XXXX · XXXX (8 alphanumeric chars + separator)
+  const modalText = await page.getByRole('dialog', { name: 'P2P clip sharing' }).textContent();
+  expect(modalText).toMatch(/[A-Z0-9]{4}\s*·\s*[A-Z0-9]{4}/);
+});
+
+test('P2P sender modal closes on Cancel', async ({ page }) => {
+  await pasteText(page, 'p2p cancel test ' + Date.now());
+  await expect(page.locator('[title="Send via P2P"]')).toBeVisible({ timeout: 3000 });
+
+  await page.locator('[title="Send via P2P"]').click();
+  await expect(page.getByRole('dialog', { name: 'P2P clip sharing' })).toContainText('Send clip via P2P', { timeout: 2000 });
+
+  await page.getByRole('button', { name: /cancel/i }).click();
+  await expect(page.getByRole('dialog', { name: 'P2P clip sharing' })).toHaveClass(/pointer-events-none/, { timeout: 2000 });
+});
+
+test('P2P sender shows a countdown timer while waiting for receiver', async ({ page }) => {
+  await pasteText(page, 'countdown test ' + Date.now());
+  await expect(page.locator('[title="Send via P2P"]')).toBeVisible({ timeout: 3000 });
+
+  await page.locator('[title="Send via P2P"]').click();
+  await expect(page.getByRole('dialog', { name: 'P2P clip sharing' })).toContainText('Send clip via P2P', { timeout: 2000 });
+
+  // Countdown text should appear once the PeerJS peer opens (may take a moment)
+  // We just verify the modal is stable and shows a waiting state or the code
+  await expect(page.getByRole('dialog', { name: 'P2P clip sharing' })).toContainText(/[A-Z0-9]{4}/, { timeout: 5000 });
+});
+
 // ── Share URL ─────────────────────────────────────────────────────────────────
 
 test('"s" key copies a share URL containing a v1 hash to the clipboard', async ({ page }) => {

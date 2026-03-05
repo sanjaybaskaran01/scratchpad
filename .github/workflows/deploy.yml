@@ -38,6 +38,8 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+        env:
+          VITE_BASE_URL: /scratchpad/
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

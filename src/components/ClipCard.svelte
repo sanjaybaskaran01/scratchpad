@@ -6,7 +6,7 @@
   import TextBlock  from './TextBlock.svelte';
   import ImageBlock from './ImageBlock.svelte';
 
-  let { clip, onCopy, onShare, onDownload, onPin, onDelete, onEdit, onChangeLanguage } = $props();
+  let { clip, onCopy, onShare, onDownload, onPin, onDelete, onEdit, onChangeLanguage, onP2PSend } = $props();
 
   const rawText = $derived(clip.type === 'text' ? decompressText(clip) : null);
 
@@ -163,6 +163,15 @@
           onclick={startEdit}
         >
           <span class="material-symbols-outlined" style="font-size:16px">edit</span>
+        </button>
+      {/if}
+      {#if clip.type !== 'image'}
+        <button
+          class="icon-action"
+          title="Send via P2P"
+          onclick={() => onP2PSend(clip)}
+        >
+          <span class="material-symbols-outlined" style="font-size:16px">send</span>
         </button>
       {/if}
       <button

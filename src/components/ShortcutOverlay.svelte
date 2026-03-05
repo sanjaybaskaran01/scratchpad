@@ -31,6 +31,7 @@
         <tr><td class="py-2 font-mono text-nb-text pr-4 whitespace-nowrap"><kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded">c</kbd></td><td class="py-2 text-nb-muted">Copy focused clip</td></tr>
         <tr><td class="py-2 font-mono text-nb-text pr-4 whitespace-nowrap"><kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded">p</kbd></td><td class="py-2 text-nb-muted">Pin / unpin focused clip</td></tr>
         <tr><td class="py-2 font-mono text-nb-text pr-4 whitespace-nowrap"><kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded">s</kbd></td><td class="py-2 text-nb-muted">Copy share URL for focused clip</td></tr>
+        <tr><td class="py-2 font-mono text-nb-text pr-4 whitespace-nowrap"><em class="not-italic text-white/40">Send →</em> button</td><td class="py-2 text-nb-muted">Send clip via P2P (code-based, zero-trace)</td></tr>
         <tr><td class="py-2 font-mono text-nb-text pr-4 whitespace-nowrap"><kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded">i</kbd></td><td class="py-2 text-nb-muted">Edit focused clip inline</td></tr>
         <tr><td class="py-2 font-mono text-nb-text pr-4 whitespace-nowrap"><kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded">x</kbd></td><td class="py-2 text-nb-muted">Delete focused clip</td></tr>
         <tr><td class="py-2 font-mono text-nb-text pr-4 whitespace-nowrap"><kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded">z</kbd></td><td class="py-2 text-nb-muted">Undo last deletion (5 s window)</td></tr>

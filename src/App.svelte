@@ -20,6 +20,7 @@
 
   import { copyToClipboard, getShareInfo, decodeFromURL } from './lib/sharing.js';
   import { highlightSnippet } from './lib/highlight.js';
+  import { generateCode } from './lib/p2p.js';
 
   import Header          from './components/Header.svelte';
   import Sidebar         from './components/Sidebar.svelte';
@@ -27,6 +28,7 @@
   import Toast           from './components/Toast.svelte';
   import ShortcutOverlay from './components/ShortcutOverlay.svelte';
   import ImageModal      from './components/ImageModal.svelte';
+  import P2PModal        from './components/P2PModal.svelte';
 
   import FlexSearch from 'flexsearch';
   const FlexDocument = FlexSearch.Document;
@@ -406,6 +408,38 @@
     indexClip(updated);
   }
 
+  // ── P2P sharing ──────────────────────────────────────────────────────────────
+  function handleP2PSend(clip) {
+    const code = generateCode();
+    uiState.p2pShare = { open: true, mode: 'sender', clip, code, peer: null };
+  }
+
+  function handleOpenReceive() {
+    uiState.p2pShare = { open: true, mode: 'receiver', clip: null, code: null, peer: null };
+  }
+
+  async function handleReceiveClip(meta, bodyBuffer) {
+    if (meta.type !== 'text') return;
+    const content = new TextDecoder().decode(bodyBuffer);
+    const clip = await saveTextClip({
+      content,
+      language:          meta.language,
+      compressed:        meta.compressed,
+      label:             meta.label || 'Received clip',
+      lineCount:         meta.lineCount,
+      ephemeral:         true,
+      pinned:            false,
+      sizeBytes:         bodyBuffer.byteLength,
+      originalSizeBytes: bodyBuffer.byteLength,
+      contentHash:       null,
+    });
+    clipsState.all.unshift(clip);
+    indexClip(clip);
+    selectAndReveal(clip.id);
+    updateStorage();
+    showToast('Clip received!');
+  }
+
   // ── Keyboard shortcuts ───────────────────────────────────────────────────────
   function onKeyDown(e) {
     const active   = document.activeElement;
@@ -423,6 +457,10 @@
       }
       uiState.overlayOpen = false;
       uiState.imageModal.open = false;
+      if (uiState.p2pShare.open) {
+        uiState.p2pShare.peer?.destroy();
+        uiState.p2pShare = { open: false, mode: null, clip: null, code: null, peer: null };
+      }
       if (inSearch) searchInputEl?.blur();
       return;
     }
@@ -509,6 +547,7 @@
   <Header
     bind:searchInputEl
     onNewClip={() => uiState.manualEntryActive = true}
+    onReceive={handleOpenReceive}
   />
 
   <div class="flex flex-1 overflow-hidden">
@@ -528,6 +567,7 @@
       onEdit={handleEdit}
       onChangeLanguage={handleChangeLanguage}
       onImagePaste={handleImagePaste}
+      onP2PSend={handleP2PSend}
     />
   </div>
 
@@ -557,4 +597,5 @@
   <Toast />
   <ShortcutOverlay />
   <ImageModal />
+  <P2PModal onReceiveClip={handleReceiveClip} />
 </div>
