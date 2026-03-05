@@ -133,5 +133,5 @@ export function createReceiverPeer() {
 }
 
 export function connectToPeer(peer, code) {
-  return peer.connect(codeToPeerId(code), { reliable: true, serialization: 'none' });
+  return peer.connect(codeToPeerId(code), { reliable: true, serialization: 'raw' });
 }

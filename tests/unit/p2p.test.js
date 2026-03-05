@@ -481,7 +481,7 @@ describe('connectToPeer', () => {
     connectToPeer(mockPeer, 'XK9P2M7T');
     expect(mockPeer.connect).toHaveBeenCalledWith(
       'sc-xk9p2m7t',
-      { reliable: true, serialization: 'none' }
+      { reliable: true, serialization: 'raw' }
     );
   });
 
