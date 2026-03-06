@@ -419,20 +419,30 @@
   }
 
   async function handleReceiveClip(meta, bodyBuffer) {
-    if (meta.type !== 'text') return;
-    const content = new TextDecoder().decode(bodyBuffer);
-    const clip = await saveTextClip({
-      content,
-      language:          meta.language,
-      compressed:        meta.compressed,
-      label:             meta.label || 'Received clip',
-      lineCount:         meta.lineCount,
-      ephemeral:         true,
-      pinned:            false,
-      sizeBytes:         bodyBuffer.byteLength,
-      originalSizeBytes: bodyBuffer.byteLength,
-      contentHash:       null,
-    });
+    let clip;
+    if (meta.type === 'image') {
+      const blob = new Blob([bodyBuffer], { type: meta.mimeType || 'image/png' });
+      clip = await saveImageClip(blob, {
+        label:      meta.label || 'Received image',
+        dimensions: meta.dimensions || null,
+        ephemeral:  true,
+        pinned:     false,
+      });
+    } else {
+      const content = new TextDecoder().decode(bodyBuffer);
+      clip = await saveTextClip({
+        content,
+        language:          meta.language,
+        compressed:        meta.compressed,
+        label:             meta.label || 'Received clip',
+        lineCount:         meta.lineCount,
+        ephemeral:         true,
+        pinned:            false,
+        sizeBytes:         bodyBuffer.byteLength,
+        originalSizeBytes: bodyBuffer.byteLength,
+        contentHash:       null,
+      });
+    }
     clipsState.all.unshift(clip);
     indexClip(clip);
     selectAndReveal(clip.id);

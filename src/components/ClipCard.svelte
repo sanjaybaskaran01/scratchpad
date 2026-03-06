@@ -165,15 +165,13 @@
           <span class="material-symbols-outlined" style="font-size:16px">edit</span>
         </button>
       {/if}
-      {#if clip.type !== 'image'}
-        <button
-          class="icon-action"
-          title="Send via P2P"
-          onclick={() => onP2PSend(clip)}
-        >
-          <span class="material-symbols-outlined" style="font-size:16px">send</span>
-        </button>
-      {/if}
+      <button
+        class="icon-action"
+        title="Send via P2P"
+        onclick={() => onP2PSend(clip)}
+      >
+        <span class="material-symbols-outlined" style="font-size:16px">send</span>
+      </button>
       <button
         class="icon-action"
         title="Share URL  (s)"

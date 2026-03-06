@@ -6,6 +6,7 @@
     serializeClip, chunkBuffer, deserializeMeta,
     createSenderPeer, createReceiverPeer, connectToPeer,
   } from '../lib/p2p.js';
+  import { getBlob } from '../lib/storage.js';
 
   let { onReceiveClip } = $props();
 
@@ -117,7 +118,8 @@
   });
 
   async function doSend(conn, key, clip) {
-    const { metaBuf, bodyBuf } = await serializeClip(clip, null);
+    const blob = clip.type === 'image' && clip.blobId ? await getBlob(clip.blobId) : null;
+    const { metaBuf, bodyBuf } = await serializeClip(clip, blob);
     conn.send(await encrypt(key, metaBuf));
     for (const chunk of chunkBuffer(bodyBuf)) {
       conn.send(await encrypt(key, chunk));
