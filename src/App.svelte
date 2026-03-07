@@ -377,10 +377,6 @@
     }
   }
 
-  async function handleManualSave(text) {
-    await createTextClip(text);
-  }
-
   async function handleEdit(clip, newText) {
     const { language } = highlightSnippet(newText);
     const hash  = await hashText(newText);
@@ -485,7 +481,7 @@
 
     const isBare = !meta && !e.altKey && !e.shiftKey;
 
-    if (isBare && e.key === 'n') { e.preventDefault(); uiState.manualEntryActive = true; return; }
+    if (isBare && e.key === 'n') { e.preventDefault(); uiState.scratchpadActive = true; return; }
 
     // j/k sidebar navigation
     const visible = visibleClips;
@@ -556,7 +552,7 @@
 <div class="h-screen flex flex-col overflow-hidden bg-nb-bg text-nb-text font-sans antialiased">
   <Header
     bind:searchInputEl
-    onNewClip={() => uiState.manualEntryActive = true}
+    onNewClip={() => uiState.scratchpadActive = true}
     onReceive={handleOpenReceive}
   />
 
@@ -573,7 +569,6 @@
       onPin={handlePin}
       onDelete={handleDelete}
       onScratchpadCommit={handleScratchpadCommit}
-      onManualSave={handleManualSave}
       onEdit={handleEdit}
       onChangeLanguage={handleChangeLanguage}
       onImagePaste={handleImagePaste}

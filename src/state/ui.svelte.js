@@ -8,6 +8,5 @@ export const uiState = $state({
   p2pShare:         { open: false, mode: null, clip: null, code: null, peer: null },
   scratchpadActive: false,
   scratchpadInitChar: '',
-  manualEntryActive: false,
   storageUsed:      0,
 });

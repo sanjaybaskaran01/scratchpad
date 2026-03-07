@@ -5,12 +5,11 @@
   import ClipCard      from './ClipCard.svelte';
   import PasteZone     from './PasteZone.svelte';
   import Scratchpad    from './Scratchpad.svelte';
-  import ManualEntry   from './ManualEntry.svelte';
 
-  let { onCopy, onShare, onDownload, onPin, onDelete, onScratchpadCommit, onManualSave, onEdit, onChangeLanguage, onImagePaste, onP2PSend } = $props();
+  let { onCopy, onShare, onDownload, onPin, onDelete, onScratchpadCommit, onEdit, onChangeLanguage, onImagePaste, onP2PSend } = $props();
 
   const showFeed = $derived(
-    visibleClips.length > 0 || uiState.scratchpadActive || uiState.manualEntryActive
+    visibleClips.length > 0 || uiState.scratchpadActive
   );
 </script>
 
@@ -19,9 +18,6 @@
     <PasteZone />
   {:else}
     <div id="clip-feed" class="max-w-3xl w-full mx-auto px-8 py-8 space-y-8">
-      {#if uiState.manualEntryActive}
-        <ManualEntry onSave={onManualSave} />
-      {/if}
       {#if uiState.scratchpadActive}
         <Scratchpad onCommit={onScratchpadCommit} {onImagePaste} />
       {/if}
