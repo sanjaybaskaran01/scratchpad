@@ -52,8 +52,11 @@ button, [role="button"], a[href], summary { cursor: pointer; }
   border-color: rgba(255,255,255,0.15);
   background: rgba(255,255,255,0.04);
 }
-@media (max-width: 767px) {
-  .icon-action { width: 36px; height: 36px; }
+@media (max-width: 639px) {
+  .icon-action { width: 32px; height: 32px; }
+}
+@media (min-width: 640px) and (max-width: 767px) {
+  .icon-action { width: 34px; height: 34px; }
 }
 
 /* ── Scrollbar global ────────────────────────────────────────────────────── */
@@ -157,6 +160,50 @@ button, [role="button"], a[href], summary { cursor: pointer; }
 .hljs { background: transparent !important; }
 pre.hljs-pre { margin: 0; background: transparent; }
 
+/* ── Safe-area utilities ─────────────────────────────────────────────────── */
+.safe-top    { padding-top:    env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-left   { padding-left:   env(safe-area-inset-left, 0px); }
+.safe-right  { padding-right:  env(safe-area-inset-right, 0px); }
+
+/* ── Mobile drawer ──────────────────────────────────────────────────────── */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 1;
+  transition: opacity 200ms ease;
+}
+.drawer-backdrop[data-closed] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drawer-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 41;
+  width: 280px;
+  max-width: 85vw;
+  background: var(--color-nb-side);
+  transform: translateX(0);
+  transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.drawer-panel[data-closed] {
+  transform: translateX(-100%);
+}
+
+/* ── Toast safe-area offset ─────────────────────────────────────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .toast { margin-bottom: env(safe-area-inset-bottom, 0px); }
+}
+
 /* ── Reduced-motion ──────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .clip-enter, .clip-exit, .sidebar-enter, .paste-zone-pulse,
@@ -168,4 +215,5 @@ pre.hljs-pre { margin: 0; background: transparent; }
   .shortcut-panel, #shortcut-overlay:not(.opacity-0) .shortcut-panel { transform: scale(1) !important; transition: none !important; }
   #storage-bar { transition: none !important; }
   .detail-card:focus { transition: none !important; }
+  .drawer-backdrop, .drawer-panel { transition: none !important; }
 }

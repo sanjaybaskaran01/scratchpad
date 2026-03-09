@@ -18,21 +18,25 @@
     if (b < 1024 * 1024)  return `${(b / 1024).toFixed(1)} KB`;
     return `${(b / 1024 / 1024).toFixed(1)} MB`;
   }
+
+  function mobileSelect(id) {
+    onSelect(id);
+    uiState.mobileSidebarOpen = false;
+  }
 </script>
 
-<aside class="w-72 border-r border-white/5 bg-nb-side hidden md:flex flex-col overflow-hidden shrink-0">
+{#snippet sidebarContent(selectHandler)}
   {#if visibleClips.length > 0}
     <div id="sidebar-list" class="flex-1 overflow-y-auto p-3 space-y-1 min-h-0">
       {#each visibleClips as clip (clip.id)}
         <SidebarItem
           {clip}
           selected={clip.id === clipsState.selectedId}
-          {onSelect}
+          onSelect={selectHandler}
         />
       {/each}
     </div>
   {:else}
-    <!-- Empty sidebar — also render the div so #sidebar-list exists for E2E -->
     <div id="sidebar-list" class="hidden"></div>
     <div id="sidebar-empty" class="flex-1 flex items-center justify-center p-6 text-center">
       <p class="text-xs text-nb-muted leading-relaxed">
@@ -42,7 +46,6 @@
     </div>
   {/if}
 
-  <!-- Storage bar -->
   <div class="shrink-0 p-4 border-t border-white/5">
     <div class="flex justify-between text-[9px] uppercase font-bold tracking-widest text-nb-muted mb-2">
       <span>Storage</span>
@@ -58,4 +61,33 @@
     </div>
     <p id="storage-text" class="text-[9px] text-white/20 mt-1.5 tracking-wide">{storageText}</p>
   </div>
+{/snippet}
+
+<!-- Desktop sidebar -->
+<aside class="w-72 border-r border-white/5 bg-nb-side hidden md:flex flex-col overflow-hidden shrink-0">
+  {@render sidebarContent(onSelect)}
 </aside>
+
+<!-- Mobile drawer -->
+{#if uiState.mobileSidebarOpen}
+  <div class="md:hidden">
+    <div
+      class="drawer-backdrop"
+      onclick={() => uiState.mobileSidebarOpen = false}
+      role="presentation"
+    ></div>
+    <div class="drawer-panel safe-top safe-bottom">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
+        <h2 class="text-sm font-semibold text-nb-text tracking-wide">Clips</h2>
+        <button
+          class="flex items-center justify-center w-8 h-8 text-nb-muted hover:text-nb-text transition-colors"
+          onclick={() => uiState.mobileSidebarOpen = false}
+          title="Close sidebar"
+        >
+          <span class="material-symbols-outlined" style="font-size:18px">close</span>
+        </button>
+      </div>
+      {@render sidebarContent(mobileSelect)}
+    </div>
+  </div>
+{/if}

@@ -9,4 +9,5 @@ export const uiState = $state({
   scratchpadActive: false,
   scratchpadInitChar: '',
   storageUsed:      0,
+  mobileSidebarOpen: false,
 });

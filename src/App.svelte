@@ -221,6 +221,7 @@
   // ── Selection ────────────────────────────────────────────────────────────────
   function selectAndReveal(id) {
     clipsState.selectedId = id;
+    uiState.mobileSidebarOpen = false;
     // Scroll to the card (DOM not yet updated; use nextTick)
     requestAnimationFrame(() => {
       const el = document.getElementById(`clip-detail-${id}`);
@@ -434,11 +435,13 @@
 
   // ── P2P sharing ──────────────────────────────────────────────────────────────
   function handleP2PSend(clip) {
+    uiState.mobileSidebarOpen = false;
     const code = generateCode();
     uiState.p2pShare = { open: true, mode: 'sender', clip, code, peer: null };
   }
 
   function handleOpenReceive() {
+    uiState.mobileSidebarOpen = false;
     uiState.p2pShare = { open: true, mode: 'receiver', clip: null, code: null, peer: null };
   }
 
@@ -484,6 +487,10 @@
     const meta = e.metaKey || e.ctrlKey;
 
     if (e.key === 'Escape') {
+      if (uiState.mobileSidebarOpen) {
+        uiState.mobileSidebarOpen = false;
+        return;
+      }
       if (clipsState.searchQuery) {
         clipsState.searchQuery = '';
         searchInputEl?.blur();
@@ -505,7 +512,7 @@
     }
     if (inSearch) return;
 
-    if (e.key === '?' && !meta) { e.preventDefault(); uiState.overlayOpen = true; return; }
+    if (e.key === '?' && !meta) { e.preventDefault(); uiState.mobileSidebarOpen = false; uiState.overlayOpen = true; return; }
 
     const isBare = !meta && !e.altKey && !e.shiftKey;
 
@@ -575,13 +582,47 @@
     Object.assign(document.createElement('a'), { href: url, download: name }).click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+
+  // ── Touch swipe for mobile drawer ──────────────────────────────────────
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchTracking = false;
+
+  function onTouchStart(e) {
+    const t = e.touches[0];
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+    // Track if starting from left edge (open gesture) or if drawer is open (close gesture)
+    touchTracking = touchStartX < 30 || uiState.mobileSidebarOpen;
+  }
+
+  function onTouchEnd(e) {
+    if (!touchTracking) return;
+    touchTracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = Math.abs(t.clientY - touchStartY);
+    // Require horizontal swipe (dx > 60px) and mostly horizontal (dx > dy)
+    if (Math.abs(dx) < 60 || dy > Math.abs(dx)) return;
+    if (dx > 0 && touchStartX < 30 && !uiState.mobileSidebarOpen) {
+      uiState.mobileSidebarOpen = true;
+    } else if (dx < 0 && uiState.mobileSidebarOpen) {
+      uiState.mobileSidebarOpen = false;
+    }
+  }
 </script>
 
-<div class="h-screen flex flex-col overflow-hidden bg-nb-bg text-nb-text font-sans antialiased">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+  class="h-screen flex flex-col overflow-hidden bg-nb-bg text-nb-text font-sans antialiased safe-left safe-right"
+  ontouchstart={onTouchStart}
+  ontouchend={onTouchEnd}
+>
   <Header
     bind:searchInputEl
     onNewClip={() => uiState.scratchpadActive = true}
     onReceive={handleOpenReceive}
+    onToggleSidebar={() => uiState.mobileSidebarOpen = !uiState.mobileSidebarOpen}
   />
 
   <div class="flex flex-1 overflow-hidden">
@@ -605,7 +646,7 @@
   </div>
 
   <!-- Footer -->
-  <footer class="h-10 border-t border-white/5 bg-nb-side px-6 hidden md:flex items-center justify-between text-[10px] text-nb-muted shrink-0">
+  <footer class="h-10 border-t border-white/5 bg-nb-side px-6 hidden md:flex items-center justify-between text-[10px] text-nb-muted shrink-0 safe-bottom">
     <div class="flex items-center gap-6">
       <div class="flex items-center gap-2">
         <kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded font-mono">⌘V</kbd>

@@ -1,21 +1,28 @@
 <script>
   import { clipsState } from '../state/clips.svelte.js';
 
-  let { onNewClip, onReceive, searchInputEl = $bindable() } = $props();
+  let { onNewClip, onReceive, onToggleSidebar, searchInputEl = $bindable() } = $props();
 
   const isSearching = $derived(clipsState.searchQuery.trim().length > 0);
 </script>
 
-<header class="min-h-14 border-b border-white/8 bg-[rgba(20,20,20,0.85)] backdrop-blur-[12px] flex flex-wrap md:flex-nowrap items-center justify-between px-4 md:px-6 py-2 md:py-0 gap-y-2 shrink-0">
-  <div class="flex items-center gap-3 md:gap-6 flex-wrap">
-    <div class="flex items-center gap-2">
+<header class="min-h-14 border-b border-white/8 bg-[rgba(20,20,20,0.85)] backdrop-blur-[12px] flex items-center justify-between px-2 sm:px-4 md:px-6 py-2 md:py-0 gap-2 shrink-0">
+  <div class="flex items-center gap-2 sm:gap-3 md:gap-6 min-w-0 overflow-x-auto">
+    <button
+      class="md:hidden flex items-center justify-center w-8 h-8 shrink-0 text-nb-muted hover:text-nb-text transition-colors"
+      onclick={onToggleSidebar}
+      title="Toggle sidebar"
+    >
+      <span class="material-symbols-outlined" style="font-size:20px">menu</span>
+    </button>
+    <div class="flex items-center gap-2 shrink-0">
       <div class="w-7 h-7 bg-nb-accent rounded-md flex items-center justify-center">
         <span class="material-symbols-outlined text-[#111]" style="font-size:14px">edit_note</span>
       </div>
-      <h1 class="text-sm font-semibold tracking-[0.08em] uppercase">Scratchpad</h1>
+      <h1 class="text-sm font-semibold tracking-[0.08em] uppercase hidden sm:block">Scratchpad</h1>
     </div>
     {#if isSearching}
-      <div class="flex items-center gap-1.5 text-xs text-nb-muted">
+      <div class="flex items-center gap-1.5 text-xs text-nb-muted shrink-0">
         <span class="material-symbols-outlined" style="font-size:12px">filter_list</span>
         <span class="italic">Filtered by search</span>
         <button
@@ -24,23 +31,23 @@
         >Clear</button>
       </div>
     {:else}
-      <nav class="flex items-center gap-1 text-[11px] md:text-xs font-medium text-nb-muted" role="tablist">
+      <nav class="flex items-center gap-1 text-[11px] md:text-xs font-medium text-nb-muted shrink-0" role="tablist">
         {#each ['all', 'code', 'image', 'text'] as filter}
           <button
             role="tab"
             aria-selected={clipsState.activeFilter === filter}
             data-filter={filter}
-            class="filter-tab px-2 md:px-3 py-1 transition-colors hover:text-nb-text"
+            class="filter-tab px-1.5 sm:px-2 md:px-3 py-1 transition-colors hover:text-nb-text"
             class:active-tab={clipsState.activeFilter === filter}
             onclick={() => clipsState.activeFilter = filter}
           >
-            {filter === 'all' ? 'All Clips' : filter.charAt(0).toUpperCase() + filter.slice(1) + (filter === 'image' ? 's' : '')}
+            {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1) + (filter === 'image' ? 's' : '')}
           </button>
         {/each}
       </nav>
     {/if}
   </div>
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-2 sm:gap-3 shrink-0">
     <div class="relative">
       <span
         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 select-none transition-colors"
@@ -52,9 +59,9 @@
         id="search-input"
         bind:this={searchInputEl}
         type="search"
-        class="bg-nb-bg border rounded-full pl-9 py-1.5 text-xs w-32 md:w-56 outline-none focus:ring-1 focus:ring-nb-accent/40 focus:border-nb-accent/40 transition-all placeholder:text-white/20
+        class="bg-nb-bg border rounded-full pl-9 py-1.5 text-xs w-28 sm:w-36 md:w-56 outline-none focus:ring-1 focus:ring-nb-accent/40 focus:border-nb-accent/40 transition-all placeholder:text-white/20
           {isSearching ? 'border-nb-accent text-nb-accent pr-8' : 'border-white/5 pr-4'}"
-        placeholder="Search clips  ⌘K"
+        placeholder="Search  ⌘K"
         autocomplete="off"
         spellcheck="false"
         bind:value={clipsState.searchQuery}

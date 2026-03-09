@@ -134,7 +134,7 @@
       {/if}
       <p class="text-sm text-nb-muted mt-0.5">{metaLine}</p>
     </div>
-    <div class="flex flex-wrap items-center gap-2 shrink-0 pt-0 md:pt-1">
+    <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0 pt-0 md:pt-1 overflow-x-auto">
       <button
         class="btn-copy flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-nb-card border rounded text-xs hover:bg-nb-accent/10 hover:border-nb-accent/30 transition-colors {copied ? 'copied-anim' : ''}"
         style={copied ? 'color: #c5b358; border-color: rgba(197,179,88,0.3)' : 'border-color: rgba(255,255,255,0.1)'}
