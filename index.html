@@ -7,15 +7,13 @@
   <meta name="description" content="A local-first developer clipboard. Press any key to capture. Paste code, images, or text. No backend, no account." />
   <meta name="author" content="sanjaybaskaran01" />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://sanjaybaskaran01.github.io/scratchpad/" />
+  <!-- canonical/OG URLs are set dynamically by script below for multi-domain support -->
 
   <!-- Open Graph -->
   <meta property="og:type"         content="website" />
-  <meta property="og:url"          content="https://sanjaybaskaran01.github.io/scratchpad/" />
   <meta property="og:site_name"    content="Scratchpad" />
   <meta property="og:title"        content="Scratchpad — developer clipboard" />
   <meta property="og:description"  content="A local-first developer clipboard. Press any key to capture. Paste code, images, or text. No backend, no account." />
-  <meta property="og:image"        content="https://sanjaybaskaran01.github.io/scratchpad/img/og.svg" />
   <meta property="og:image:width"  content="1200" />
   <meta property="og:image:height" content="630" />
 
@@ -23,7 +21,6 @@
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content="Scratchpad — developer clipboard" />
   <meta name="twitter:description" content="A local-first developer clipboard. Press any key to capture. Paste code, images, or text. No backend, no account." />
-  <meta name="twitter:image"       content="https://sanjaybaskaran01.github.io/scratchpad/img/og.svg" />
   <meta name="twitter:creator"     content="@sanjaybaskaran01" />
 
   <!-- PWA / Mobile -->
@@ -31,24 +28,50 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Scratchpad" />
-  <link rel="apple-touch-icon" href="%BASE_URL%img/favicon.svg" />
+  <link rel="apple-touch-icon" href="./img/favicon.svg" />
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="%BASE_URL%img/favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="./img/favicon.svg" />
 
   <!-- JSON-LD structured data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "Scratchpad",
-    "url": "https://sanjaybaskaran01.github.io/scratchpad/",
-    "description": "A local-first developer clipboard. Press any key to capture. Paste code, images, or text. No backend, no account.",
-    "applicationCategory": "DeveloperApplication",
-    "operatingSystem": "Any",
-    "browserRequirements": "Requires a modern browser with IndexedDB support",
-    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
-  }
+  <!-- JSON-LD URL set dynamically below -->
+
+  <!-- Dynamic meta for multi-domain support -->
+  <script>
+    (function () {
+      var origin = location.origin;
+      var base = location.pathname.replace(/\/$/, '');
+      var url = origin + base + '/';
+      var img = origin + base + '/img/og.svg';
+      function setMeta(attr, key, val) {
+        var el = document.querySelector('meta[' + attr + '="' + key + '"]');
+        if (el) el.setAttribute('content', val);
+      }
+      // Canonical
+      var link = document.createElement('link');
+      link.rel = 'canonical'; link.href = url;
+      document.head.appendChild(link);
+      // OG
+      setMeta('property', 'og:url', url);
+      setMeta('property', 'og:image', img);
+      // Twitter
+      setMeta('name', 'twitter:image', img);
+      // JSON-LD
+      var ld = document.createElement('script');
+      ld.type = 'application/ld+json';
+      ld.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Scratchpad",
+        "url": url,
+        "description": "A local-first developer clipboard. Press any key to capture. Paste code, images, or text. No backend, no account.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires a modern browser with IndexedDB support",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      });
+      document.head.appendChild(ld);
+    })();
   </script>
 
   <!-- Fonts -->
