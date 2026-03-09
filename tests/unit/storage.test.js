@@ -4,6 +4,43 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 
+// ── BroadcastChannel mock ────────────────────────────────────────────────────
+// Simulates cross-tab messaging: all instances share a global listener list.
+
+const bcListeners = [];
+
+class MockBroadcastChannel {
+  constructor(name) {
+    this.name = name;
+    this._handlers = [];
+    bcListeners.push(this);
+  }
+  postMessage(data) {
+    // Deliver to ALL instances with same name (including self for single-process testing)
+    for (const ch of bcListeners) {
+      if (ch.name === this.name) {
+        const event = { data };
+        for (const h of ch._handlers) h(event);
+        if (ch.onmessage) ch.onmessage(event);
+      }
+    }
+  }
+  addEventListener(type, handler) {
+    if (type === 'message') this._handlers.push(handler);
+  }
+  removeEventListener(type, handler) {
+    if (type === 'message') {
+      this._handlers = this._handlers.filter(h => h !== handler);
+    }
+  }
+  close() {
+    const idx = bcListeners.indexOf(this);
+    if (idx >= 0) bcListeners.splice(idx, 1);
+  }
+}
+
+global.BroadcastChannel = MockBroadcastChannel;
+
 let storage;
 
 beforeEach(async () => {
@@ -11,6 +48,9 @@ beforeEach(async () => {
 
   global.indexedDB  = new IDBFactory();
   global.IDBKeyRange = IDBKeyRange;
+
+  // Clear all existing channels
+  bcListeners.length = 0;
 
   sessionStorage.clear();
   localStorage.clear();
@@ -319,5 +359,252 @@ describe('estimateStorageUsed', () => {
     const bytes = await storage.estimateStorageUsed();
     expect(typeof bytes).toBe('number');
     expect(bytes).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ── Cross-tab sync (BroadcastChannel) ────────────────────────────────────────
+
+describe('onStorageChange — cross-tab sync', () => {
+  it('fires when a non-ephemeral text clip is saved', async () => {
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await makeTextClip({ ephemeral: false });
+    expect(events).toHaveLength(1);
+    expect(events[0].action).toBe('save');
+    expect(events[0].clipId).toMatch(/^clip_/);
+    expect(typeof events[0].timestamp).toBe('number');
+  });
+
+  it('does NOT fire for ephemeral (session) text clips', async () => {
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await storage.saveTextClip({ content: 'ephemeral', ephemeral: true });
+    expect(events).toHaveLength(0);
+  });
+
+  it('fires when an image clip is saved', async () => {
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    const blob = new Blob(['<img>'], { type: 'image/png' });
+    await storage.saveImageClip(blob, { label: 'test' });
+    expect(events).toHaveLength(1);
+    expect(events[0].action).toBe('save');
+  });
+
+  it('fires when an IDB clip is deleted', async () => {
+    const clip = await makeTextClip({ ephemeral: false });
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await storage.deleteClip(clip.id);
+    expect(events).toHaveLength(1);
+    expect(events[0].action).toBe('delete');
+    expect(events[0].clipId).toBe(clip.id);
+  });
+
+  it('does NOT fire when a session clip is deleted', async () => {
+    const clip = await storage.saveTextClip({ content: 'x', ephemeral: true });
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await storage.deleteClip(clip.id);
+    expect(events).toHaveLength(0);
+  });
+
+  it('fires on pinClip (from session)', async () => {
+    const clip = await storage.saveTextClip({ content: 'pin me', ephemeral: true });
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await storage.pinClip(clip.id);
+    expect(events).toHaveLength(1);
+    expect(events[0].action).toBe('pin');
+  });
+
+  it('fires on pinClip (from IDB)', async () => {
+    const clip = await makeTextClip({ ephemeral: false });
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await storage.pinClip(clip.id);
+    expect(events).toHaveLength(1);
+    expect(events[0].action).toBe('pin');
+  });
+
+  it('fires on unpinClip', async () => {
+    const clip = await makeTextClip({ pinned: true, ephemeral: false });
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await storage.unpinClip(clip.id);
+    expect(events).toHaveLength(1);
+    expect(events[0].action).toBe('unpin');
+  });
+
+  it('fires on restoreClip (IDB text)', async () => {
+    const clip = await makeTextClip({ ephemeral: false });
+    await storage.deleteClip(clip.id);
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await storage.restoreClip(clip);
+    expect(events).toHaveLength(1);
+    expect(events[0].action).toBe('restore');
+  });
+
+  it('fires on restoreClip (image)', async () => {
+    const blob = new Blob(['<img>'], { type: 'image/png' });
+    const clip = await storage.saveImageClip(blob, { label: 'img' });
+    await storage.deleteClip(clip.id);
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await storage.restoreClip(clip, blob);
+    expect(events).toHaveLength(1);
+    expect(events[0].action).toBe('restore');
+  });
+
+  it('does NOT fire on restoreClip for ephemeral text clips', async () => {
+    const clip = await storage.saveTextClip({ content: 'e', ephemeral: true });
+    const snapshot = { ...clip };
+    await storage.deleteClip(clip.id);
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await storage.restoreClip(snapshot);
+    expect(events).toHaveLength(0);
+  });
+
+  it('cleanup function removes the listener', async () => {
+    const events = [];
+    const unsub = storage.onStorageChange((msg) => events.push(msg));
+
+    await makeTextClip({ ephemeral: false });
+    expect(events).toHaveLength(1);
+
+    unsub();
+    await makeTextClip({ ephemeral: false });
+    expect(events).toHaveLength(1); // no new events after unsub
+  });
+
+  it('multiple listeners all receive events', async () => {
+    const events1 = [];
+    const events2 = [];
+    storage.onStorageChange((msg) => events1.push(msg));
+    storage.onStorageChange((msg) => events2.push(msg));
+
+    await makeTextClip({ ephemeral: false });
+    expect(events1).toHaveLength(1);
+    expect(events2).toHaveLength(1);
+  });
+
+  it('tracks a sequence of save → pin → delete correctly', async () => {
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    const clip = await makeTextClip({ ephemeral: false });
+    await storage.pinClip(clip.id);
+    await storage.deleteClip(clip.id);
+
+    expect(events).toHaveLength(3);
+    expect(events.map(e => e.action)).toEqual(['save', 'pin', 'delete']);
+    expect(events.every(e => e.clipId === clip.id)).toBe(true);
+  });
+
+  it('rapid-fire saves produce one event per save', async () => {
+    const events = [];
+    storage.onStorageChange((msg) => events.push(msg));
+
+    await Promise.all([
+      makeTextClip({ ephemeral: false }),
+      makeTextClip({ ephemeral: false }),
+      makeTextClip({ ephemeral: false }),
+    ]);
+    expect(events).toHaveLength(3);
+  });
+});
+
+// ── Multi-tab data consistency ───────────────────────────────────────────────
+
+describe('multi-tab data consistency', () => {
+  it('getAllClips reflects IDB changes made since last call', async () => {
+    const clip1 = await makeTextClip({ ephemeral: false });
+    const firstLoad = await storage.getAllClips();
+    expect(firstLoad.some(c => c.id === clip1.id)).toBe(true);
+
+    // Simulate "another tab" saving a clip (direct IDB write)
+    const clip2 = await makeTextClip({ ephemeral: false });
+    const secondLoad = await storage.getAllClips();
+    expect(secondLoad.some(c => c.id === clip2.id)).toBe(true);
+    expect(secondLoad.length).toBeGreaterThan(firstLoad.length);
+  });
+
+  it('getAllClips reflects IDB deletions', async () => {
+    const clip = await makeTextClip({ ephemeral: false });
+    expect((await storage.getAllClips()).some(c => c.id === clip.id)).toBe(true);
+
+    await storage.deleteClip(clip.id);
+    expect((await storage.getAllClips()).some(c => c.id === clip.id)).toBe(false);
+  });
+
+  it('pinClip from one tab is visible via getAllClips from another', async () => {
+    const clip = await storage.saveTextClip({ content: 'test', ephemeral: true });
+    await storage.pinClip(clip.id);
+
+    const all = await storage.getAllClips();
+    const found = all.find(c => c.id === clip.id);
+    expect(found).toBeDefined();
+    expect(found.pinned).toBe(true);
+    expect(found.ephemeral).toBe(false);
+  });
+
+  it('concurrent saves with different IDs do not overwrite each other', async () => {
+    const results = await Promise.all([
+      storage.saveTextClip({ content: 'clip-A', id: 'clip_A', ephemeral: false }),
+      storage.saveTextClip({ content: 'clip-B', id: 'clip_B', ephemeral: false }),
+      storage.saveTextClip({ content: 'clip-C', id: 'clip_C', ephemeral: false }),
+    ]);
+
+    const all = await storage.getAllClips();
+    for (const clip of results) {
+      expect(all.some(c => c.id === clip.id)).toBe(true);
+    }
+  });
+
+  it('deleting a clip that was just pinned in IDB succeeds', async () => {
+    const clip = await storage.saveTextClip({ content: 'pin-then-delete', ephemeral: true });
+    await storage.pinClip(clip.id);
+    await storage.deleteClip(clip.id);
+
+    const all = await storage.getAllClips();
+    expect(all.some(c => c.id === clip.id)).toBe(false);
+  });
+
+  it('restoreClip after delete re-adds the clip to getAllClips', async () => {
+    const clip = await makeTextClip({ ephemeral: false });
+    const snapshot = { ...clip };
+    await storage.deleteClip(clip.id);
+    expect((await storage.getAllClips()).some(c => c.id === clip.id)).toBe(false);
+
+    await storage.restoreClip(snapshot);
+    expect((await storage.getAllClips()).some(c => c.id === clip.id)).toBe(true);
+  });
+
+  it('image clip save + delete + restore round-trip preserves blob', async () => {
+    const blob = new Blob(['<pixel-data>'], { type: 'image/png' });
+    const clip = await storage.saveImageClip(blob, { label: 'roundtrip' });
+
+    const blobBefore = await storage.getBlob(clip.blobId);
+    expect(blobBefore).not.toBeNull();
+
+    await storage.deleteClip(clip.id);
+    expect(await storage.getBlob(clip.blobId)).toBeNull();
+
+    await storage.restoreClip(clip, blob);
+    const blobAfter = await storage.getBlob(clip.blobId);
+    expect(blobAfter).not.toBeNull();
   });
 });

@@ -28,6 +28,7 @@ import {
   makeReadySignal, verifyReadySignal,
   serializeClip, chunkBuffer, deserializeMeta,
   createSenderPeer, createReceiverPeer, connectToPeer,
+  fetchIceServers, FALLBACK_ICE, monitorIceState,
 } from '../../src/lib/p2p.js';
 
 // ── Shared keys (derived once — PBKDF2 is intentionally slow) ────────────────
@@ -448,10 +449,16 @@ describe('chunkBuffer', () => {
 describe('createSenderPeer', () => {
   beforeEach(() => Peer.mockClear());
 
-  it('instantiates Peer with the code-derived peer ID', () => {
-    createSenderPeer('XK9P2M7T');
+  it('instantiates Peer with the code-derived peer ID and ICE config', () => {
+    const iceConfig = { iceServers: [{ urls: 'stun:stun.test:3478' }] };
+    createSenderPeer('XK9P2M7T', iceConfig);
     expect(Peer).toHaveBeenCalledTimes(1);
-    expect(Peer).toHaveBeenCalledWith('sc-xk9p2m7t');
+    expect(Peer).toHaveBeenCalledWith('sc-xk9p2m7t', { config: iceConfig });
+  });
+
+  it('uses FALLBACK_ICE when no iceConfig is provided', () => {
+    createSenderPeer('XK9P2M7T');
+    expect(Peer).toHaveBeenCalledWith('sc-xk9p2m7t', { config: FALLBACK_ICE });
   });
 
   it('returns the Peer instance', () => {
@@ -463,10 +470,16 @@ describe('createSenderPeer', () => {
 describe('createReceiverPeer', () => {
   beforeEach(() => Peer.mockClear());
 
-  it('instantiates Peer with no arguments (cloud assigns a random ID)', () => {
-    createReceiverPeer();
+  it('instantiates Peer with ICE config when provided', () => {
+    const iceConfig = { iceServers: [{ urls: 'turn:turn.test:3478' }] };
+    createReceiverPeer(iceConfig);
     expect(Peer).toHaveBeenCalledTimes(1);
-    expect(Peer).toHaveBeenCalledWith();
+    expect(Peer).toHaveBeenCalledWith({ config: iceConfig });
+  });
+
+  it('uses FALLBACK_ICE when no iceConfig is provided', () => {
+    createReceiverPeer();
+    expect(Peer).toHaveBeenCalledWith({ config: FALLBACK_ICE });
   });
 
   it('returns the Peer instance', () => {
@@ -489,6 +502,87 @@ describe('connectToPeer', () => {
     const mockConn = { on: vi.fn() };
     const mockPeer = { connect: vi.fn().mockReturnValue(mockConn) };
     expect(connectToPeer(mockPeer, 'ABCD1234')).toBe(mockConn);
+  });
+});
+
+// ── FALLBACK_ICE ──────────────────────────────────────────────────────────────
+
+describe('FALLBACK_ICE', () => {
+  it('has iceServers with STUN entries', () => {
+    expect(FALLBACK_ICE.iceServers).toBeInstanceOf(Array);
+    expect(FALLBACK_ICE.iceServers.length).toBeGreaterThanOrEqual(1);
+    expect(FALLBACK_ICE.iceServers[0].urls).toMatch(/^stun:/);
+  });
+
+  it('includes iceCandidatePoolSize', () => {
+    expect(FALLBACK_ICE.iceCandidatePoolSize).toBe(10);
+  });
+});
+
+// ── fetchIceServers ──────────────────────────────────────────────────────────
+
+describe('fetchIceServers', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('returns FALLBACK_ICE when VITE_TURN_WORKER_URL is not set', async () => {
+    // The env var is not set in test environment, so fetchIceServers should fallback
+    const result = await fetchIceServers();
+    expect(result).toEqual(FALLBACK_ICE);
+  });
+});
+
+// ── monitorIceState ──────────────────────────────────────────────────────────
+
+describe('monitorIceState', () => {
+  it('calls onFailed when iceConnectionState transitions to "failed"', () => {
+    const onFailed = vi.fn();
+    const listeners = {};
+    const mockConn = {
+      peerConnection: {
+        iceConnectionState: 'connected',
+        addEventListener: vi.fn((event, cb) => { listeners[event] = cb; }),
+      },
+    };
+
+    monitorIceState(mockConn, onFailed);
+    expect(mockConn.peerConnection.addEventListener).toHaveBeenCalledWith(
+      'iceconnectionstatechange',
+      expect.any(Function),
+    );
+
+    // Simulate ICE failure
+    mockConn.peerConnection.iceConnectionState = 'failed';
+    listeners['iceconnectionstatechange']();
+    expect(onFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onFailed for non-failed states', () => {
+    const onFailed = vi.fn();
+    const listeners = {};
+    const mockConn = {
+      peerConnection: {
+        iceConnectionState: 'connected',
+        addEventListener: vi.fn((event, cb) => { listeners[event] = cb; }),
+      },
+    };
+
+    monitorIceState(mockConn, onFailed);
+
+    mockConn.peerConnection.iceConnectionState = 'disconnected';
+    listeners['iceconnectionstatechange']();
+    expect(onFailed).not.toHaveBeenCalled();
+  });
+
+  it('does nothing if conn.peerConnection is null', () => {
+    const onFailed = vi.fn();
+    // Should not throw
+    monitorIceState({ peerConnection: null }, onFailed);
+    monitorIceState({}, onFailed);
+    expect(onFailed).not.toHaveBeenCalled();
   });
 });
 

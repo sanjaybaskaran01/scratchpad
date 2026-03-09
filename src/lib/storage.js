@@ -10,6 +10,37 @@ const SOFT_LIMIT_BYTES = 50 * 1024 * 1024;  // 50 MB
 
 let db = null;
 
+// ── Cross-tab sync via BroadcastChannel ──────────────────────────────────────
+
+let syncChannel = null;
+
+function getSyncChannel() {
+  if (syncChannel) return syncChannel;
+  try {
+    syncChannel = new BroadcastChannel('scratchpad_sync');
+  } catch {
+    // BroadcastChannel not supported (e.g. older Safari)
+  }
+  return syncChannel;
+}
+
+function broadcastChange(action, clipId) {
+  const ch = getSyncChannel();
+  if (ch) ch.postMessage({ action, clipId, timestamp: Date.now() });
+}
+
+/**
+ * Register a callback for cross-tab storage changes.
+ * Returns a cleanup function.
+ */
+export function onStorageChange(callback) {
+  const ch = getSyncChannel();
+  if (!ch) return () => {};
+  const handler = (e) => callback(e.data);
+  ch.addEventListener('message', handler);
+  return () => ch.removeEventListener('message', handler);
+}
+
 async function getDB() {
   if (db) return db;
   db = await idbOpen(DB_NAME, DB_VERSION, {
@@ -109,6 +140,7 @@ export async function saveTextClip(clip) {
   } else {
     const d = await getDB();
     await d.put('clips', full);
+    broadcastChange('save', full.id);
   }
   return full;
 }
@@ -142,6 +174,7 @@ export async function saveImageClip(blob, meta = {}) {
     d.put('blobs', { blobId, data: blob }),
     d.put('clips', clip),
   ]);
+  broadcastChange('save', clip.id);
   return clip;
 }
 
@@ -156,6 +189,7 @@ export async function restoreClip(clip, blob = null) {
       d.put('clips', clip),
       d.put('blobs', { blobId: clip.blobId, data: blob }),
     ]);
+    broadcastChange('restore', clip.id);
   } else if (clip.type === 'text') {
     if (clip.ephemeral) {
       const clips = getSessionClips();
@@ -165,6 +199,7 @@ export async function restoreClip(clip, blob = null) {
     } else {
       const d = await getDB();
       await d.put('clips', clip);
+      broadcastChange('restore', clip.id);
     }
   }
 }
@@ -187,6 +222,7 @@ export async function pinClip(id) {
     saveSessionClips(sessionClips);
     const d = await getDB();
     await d.put('clips', clip);
+    broadcastChange('pin', clip.id);
     return clip;
   }
   const d = await getDB();
@@ -195,6 +231,7 @@ export async function pinClip(id) {
     clip.pinned   = true;
     clip.expiresAt = Infinity;
     await d.put('clips', clip);
+    broadcastChange('pin', clip.id);
     return clip;
   }
   return null;
@@ -207,6 +244,7 @@ export async function unpinClip(id) {
     clip.pinned   = false;
     clip.expiresAt = Date.now() + CLIP_TTL_MS;
     await d.put('clips', clip);
+    broadcastChange('unpin', clip.id);
     return clip;
   }
   return null;
@@ -225,6 +263,7 @@ export async function deleteClip(id) {
   if (clip) {
     await d.delete('clips', id);
     if (clip.blobId) await d.delete('blobs', clip.blobId);
+    broadcastChange('delete', id);
   }
 }
 

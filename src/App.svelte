@@ -16,6 +16,7 @@
     pinClip, unpinClip,
     getAllClips, getBlob, purgeExpired, estimateStorageUsed,
     getSettings, saveSetting, findByHash, SOFT_LIMIT_BYTES,
+    onStorageChange,
   } from './lib/storage.js';
 
   import { copyToClipboard, getShareInfo, decodeFromURL } from './lib/sharing.js';
@@ -44,13 +45,21 @@
     initApp();
     document.addEventListener('paste',   onGlobalPaste);
     document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     const timer = setInterval(updateStorage, 30_000);
+    const unsubSync = onStorageChange(() => loadClips());
     return () => {
       document.removeEventListener('paste',   onGlobalPaste);
       document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       clearInterval(timer);
+      unsubSync();
     };
   });
+
+  function onVisibilityChange() {
+    if (document.visibilityState === 'visible') loadClips();
+  }
 
   async function initApp() {
     await purgeExpired();
@@ -119,7 +128,10 @@
     const clips = await getAllClips();
     clipsState.all = clips;
     buildSearchIndex();
-    if (clips.length) clipsState.selectedId = clips[0].id;
+    // Preserve current selection if the clip still exists, otherwise select first
+    if (!clipsState.selectedId || !clips.find(c => c.id === clipsState.selectedId)) {
+      clipsState.selectedId = clips[0]?.id || null;
+    }
   }
 
   // ── Storage ──────────────────────────────────────────────────────────────────

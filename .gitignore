@@ -6,6 +6,10 @@ test-results/
 playwright-report/
 coverage/
 
+# Environment
+.env
+.env.local
+
 # macOS
 .DS_Store
 

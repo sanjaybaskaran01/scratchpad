@@ -122,16 +122,51 @@ export function deserializeMeta(buf) {
   return JSON.parse(new TextDecoder().decode(buf));
 }
 
-// ── PeerJS helpers ────────────────────────────────────────────────────────────
+// ── ICE / TURN configuration ─────────────────────────────────────────────────
 
-export function createSenderPeer(code) {
-  return new Peer(codeToPeerId(code));
+const TURN_WORKER_URL = import.meta.env.VITE_TURN_WORKER_URL || '';
+
+export const FALLBACK_ICE = {
+  iceServers: [
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'stun:stun.l.google.com:19302' },
+  ],
+  iceCandidatePoolSize: 10,
+};
+
+export async function fetchIceServers() {
+  if (!TURN_WORKER_URL) return FALLBACK_ICE;
+  try {
+    const res = await fetch(`${TURN_WORKER_URL}/turn-credentials`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error(res.status);
+    const iceServers = await res.json();
+    return { iceServers, iceCandidatePoolSize: 10 };
+  } catch {
+    console.warn('TURN credential fetch failed, using STUN-only fallback');
+    return FALLBACK_ICE;
+  }
 }
 
-export function createReceiverPeer() {
-  return new Peer();
+// ── PeerJS helpers ────────────────────────────────────────────────────────────
+
+export function createSenderPeer(code, iceConfig) {
+  return new Peer(codeToPeerId(code), { config: iceConfig || FALLBACK_ICE });
+}
+
+export function createReceiverPeer(iceConfig) {
+  return new Peer({ config: iceConfig || FALLBACK_ICE });
 }
 
 export function connectToPeer(peer, code) {
   return peer.connect(codeToPeerId(code), { reliable: true, serialization: 'raw' });
+}
+
+export function monitorIceState(conn, onFailed) {
+  const pc = conn.peerConnection;
+  if (!pc) return;
+  pc.addEventListener('iceconnectionstatechange', () => {
+    if (pc.iceConnectionState === 'failed') onFailed();
+  });
 }

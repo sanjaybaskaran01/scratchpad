@@ -5,6 +5,7 @@
     makeReadySignal, verifyReadySignal,
     serializeClip, chunkBuffer, deserializeMeta,
     createSenderPeer, createReceiverPeer, connectToPeer,
+    fetchIceServers, monitorIceState,
   } from '../lib/p2p.js';
   import { getBlob } from '../lib/storage.js';
 
@@ -47,75 +48,88 @@
     errorMsg     = '';
     secondsLeft  = P2P_TIMEOUT_SECONDS;
 
-    const peer = createSenderPeer(code);
-    uiState.p2pShare.peer = peer;
-
     let countdownInterval = null;
     let handled = false;
+    let cancelled = false;
 
-    peer.on('open', () => {
-      senderStatus = 'waiting-peer';
-      secondsLeft  = P2P_TIMEOUT_SECONDS;
-      countdownInterval = setInterval(() => {
-        secondsLeft -= 1;
-        if (secondsLeft <= 0) {
-          clearInterval(countdownInterval);
-          countdownInterval = null;
-          senderStatus = 'error';
-          errorMsg     = 'Timed out — generate a new code';
-          peer.destroy();
-        }
-      }, 1000);
-    });
+    (async () => {
+      const iceConfig = await fetchIceServers();
+      if (cancelled) return;
 
-    peer.on('connection', conn => {
-      if (handled) { conn.close(); return; }
+      const peer = createSenderPeer(code, iceConfig);
+      uiState.p2pShare.peer = peer;
 
-      conn.on('open', () => {
-        senderStatus = 'verifying';
+      peer.on('open', () => {
+        senderStatus = 'waiting-peer';
+        secondsLeft  = P2P_TIMEOUT_SECONDS;
+        countdownInterval = setInterval(() => {
+          secondsLeft -= 1;
+          if (secondsLeft <= 0) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+            senderStatus = 'error';
+            errorMsg     = 'Timed out — generate a new code';
+            peer.destroy();
+          }
+        }, 1000);
       });
 
-      conn.on('data', async data => {
-        if (handled) return;
-        const key = await deriveKey(code);
-        const ok  = await verifyReadySignal(key, data);
-        if (!ok) {
-          conn.close();
-          senderStatus = 'error';
-          errorMsg     = 'Code mismatch — wrong pairing code?';
-          return;
-        }
-        handled = true;
-        if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-        senderStatus = 'sending';
-        try {
-          await doSend(conn, key, clip);
-          conn.close();
-          peer.destroy();
-          senderStatus = 'done';
-          setTimeout(() => close(), 2000);
-        } catch {
-          senderStatus = 'error';
-          errorMsg     = 'Transfer failed — try again';
-        }
+      peer.on('connection', conn => {
+        if (handled) { conn.close(); return; }
+
+        conn.on('open', () => {
+          senderStatus = 'verifying';
+          monitorIceState(conn, () => {
+            if (senderStatus !== 'done' && senderStatus !== 'error') {
+              senderStatus = 'error';
+              errorMsg     = 'Connection lost — the other peer\'s network may be blocking P2P';
+            }
+          });
+        });
+
+        conn.on('data', async data => {
+          if (handled) return;
+          const key = await deriveKey(code);
+          const ok  = await verifyReadySignal(key, data);
+          if (!ok) {
+            conn.close();
+            senderStatus = 'error';
+            errorMsg     = 'Code mismatch — wrong pairing code?';
+            return;
+          }
+          handled = true;
+          if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+          senderStatus = 'sending';
+          try {
+            await doSend(conn, key, clip);
+            conn.close();
+            peer.destroy();
+            senderStatus = 'done';
+            setTimeout(() => close(), 2000);
+          } catch {
+            senderStatus = 'error';
+            errorMsg     = 'Transfer failed — try again';
+          }
+        });
+
+        conn.on('close', () => {
+          if (!handled && senderStatus !== 'done' && senderStatus !== 'error') {
+            senderStatus = 'error';
+            errorMsg     = 'Connection dropped — try again';
+          }
+        });
       });
 
-      conn.on('close', () => {
-        if (!handled && senderStatus !== 'done' && senderStatus !== 'error') {
-          senderStatus = 'error';
-          errorMsg     = 'Connection dropped — try again';
-        }
+      peer.on('error', err => {
+        senderStatus = 'error';
+        if (err.type === 'server-error')    errorMsg = 'Signaling server unreachable';
+        else if (err.type === 'unavailable-id') errorMsg = 'Code already in use — try again';
+        else errorMsg = `Connection error (${err.type})`;
       });
-    });
-
-    peer.on('error', err => {
-      senderStatus = 'error';
-      if (err.type === 'server-error')    errorMsg = 'Signaling server unreachable';
-      else if (err.type === 'unavailable-id') errorMsg = 'Code already in use — try again';
-      else errorMsg = `Connection error (${err.type})`;
-    });
+    })();
 
     return () => {
+      cancelled = true;
       if (countdownInterval) clearInterval(countdownInterval);
     };
   });
@@ -160,8 +174,9 @@
     receiverStatus = 'connecting';
     errorMsg       = '';
 
-    const key  = await deriveKey(rawCode);
-    const peer = createReceiverPeer();
+    const key       = await deriveKey(rawCode);
+    const iceConfig = await fetchIceServers();
+    const peer      = createReceiverPeer(iceConfig);
     uiState.p2pShare.peer = peer;
 
     peer.on('open', () => {
@@ -170,6 +185,12 @@
       conn.on('open', async () => {
         conn.send(await makeReadySignal(key));
         receiverStatus = 'ready';
+        monitorIceState(conn, () => {
+          if (!['done', 'error'].includes(receiverStatus)) {
+            receiverStatus = 'error';
+            errorMsg       = 'Connection lost — the other peer\'s network may be blocking P2P';
+          }
+        });
       });
 
       let msgIndex    = 0;
