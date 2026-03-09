@@ -86,13 +86,13 @@
         class:opacity-0={!statusVisible}
       >{status}</span>
     </div>
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 md:gap-3">
       <button
-        class="text-[11px] text-nb-muted hover:text-nb-accent transition-colors"
+        class="text-[10px] md:text-[11px] text-nb-muted hover:text-nb-accent transition-colors"
         onclick={commit}
       >Save as clip  ↵</button>
       <button
-        class="text-[11px] text-nb-muted hover:text-red-400 transition-colors"
+        class="text-[10px] md:text-[11px] text-nb-muted hover:text-red-400 transition-colors"
         onclick={discard}
       >Discard  Esc</button>
     </div>
@@ -104,7 +104,7 @@
     oninput={onInput}
     onkeydown={onKeyDown}
     onpaste={onPaste}
-    class="w-full bg-transparent text-nb-text font-mono text-sm p-4 outline-none resize-none min-h-[130px] leading-relaxed placeholder:text-white/20"
+    class="w-full bg-transparent text-nb-text font-mono text-sm p-4 outline-none resize-none min-h-[100px] md:min-h-[130px] leading-relaxed placeholder:text-white/20"
     placeholder="Start typing… auto-saves every keystroke  ·  Paste images to save them directly"
     autocomplete="off"
     spellcheck="false"

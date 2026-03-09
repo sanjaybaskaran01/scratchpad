@@ -11,11 +11,14 @@
   let { onReceiveClip } = $props();
 
   // ── Local state ───────────────────────────────────────────────────────────────
+  const P2P_TIMEOUT_SECONDS = 120;
+
   let senderStatus   = $state('idle');  // idle | waiting-peer | verifying | sending | done | error
   let receiverStatus = $state('idle');  // idle | connecting | ready | receiving | done | error
   let errorMsg       = $state('');
-  let secondsLeft    = $state(60);
+  let secondsLeft    = $state(P2P_TIMEOUT_SECONDS);
   let codeInput      = $state('');
+  let linkCopied     = $state(false);
 
   const displayCode = $derived(
     uiState.p2pShare.code
@@ -25,11 +28,11 @@
 
   function close() {
     uiState.p2pShare.peer?.destroy();
-    uiState.p2pShare = { open: false, mode: null, clip: null, code: null, peer: null };
+    uiState.p2pShare = { open: false, mode: null, clip: null, code: null, peer: null, prefillCode: null };
     senderStatus   = 'idle';
     receiverStatus = 'idle';
     errorMsg       = '';
-    secondsLeft    = 60;
+    secondsLeft    = P2P_TIMEOUT_SECONDS;
     codeInput      = '';
   }
 
@@ -42,7 +45,7 @@
 
     senderStatus = 'idle';
     errorMsg     = '';
-    secondsLeft  = 60;
+    secondsLeft  = P2P_TIMEOUT_SECONDS;
 
     const peer = createSenderPeer(code);
     uiState.p2pShare.peer = peer;
@@ -52,7 +55,7 @@
 
     peer.on('open', () => {
       senderStatus = 'waiting-peer';
-      secondsLeft  = 60;
+      secondsLeft  = P2P_TIMEOUT_SECONDS;
       countdownInterval = setInterval(() => {
         secondsLeft -= 1;
         if (secondsLeft <= 0) {
@@ -132,11 +135,23 @@
     if (!uiState.p2pShare.open || uiState.p2pShare.mode !== 'receiver') return;
     receiverStatus = 'idle';
     errorMsg       = '';
-    codeInput      = '';
+
+    const prefill = uiState.p2pShare.prefillCode;
+    if (prefill) {
+      const raw = prefill.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8);
+      codeInput = raw.length > 4 ? raw.slice(0, 4) + '-' + raw.slice(4) : raw;
+      uiState.p2pShare.prefillCode = null;
+      // Auto-connect after a tick so the UI renders first
+      if (raw.length === 8) {
+        queueMicrotask(() => handleConnect(raw));
+      }
+    } else {
+      codeInput = '';
+    }
   });
 
-  async function handleConnect() {
-    const rawCode = codeInput.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  async function handleConnect(overrideCode = null) {
+    const rawCode = (overrideCode || codeInput).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     if (rawCode.length !== 8) return;
 
     // Destroy any previous attempt
@@ -215,6 +230,17 @@
       offset += chunk.byteLength;
     }
     return out.buffer;
+  }
+
+  async function copyShareLink() {
+    const code = uiState.p2pShare.code;
+    if (!code) return;
+    const url = `${location.origin}${location.pathname}#p2p=${code}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      linkCopied = true;
+      setTimeout(() => linkCopied = false, 2000);
+    } catch {}
   }
 
   function onCodeInput(e) {
@@ -296,8 +322,15 @@
             {displayCode}
           </div>
           <div class="text-[11px] text-nb-muted text-center mt-2 leading-relaxed">
-            Receiver opens app → Receive → enters code above
+            Receiver opens app &rarr; Receive &rarr; enters code above
           </div>
+          <button
+            class="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-nb-bg border border-white/10 rounded text-[11px] text-nb-muted hover:text-nb-text hover:border-white/20 transition-colors"
+            onclick={copyShareLink}
+          >
+            <span class="material-symbols-outlined" style="font-size:14px">{linkCopied ? 'check' : 'link'}</span>
+            {linkCopied ? 'Link copied!' : 'Copy shareable link'}
+          </button>
         </div>
 
         <!-- Status + countdown -->
@@ -317,7 +350,7 @@
             <div class="h-0.5 bg-nb-bg rounded-full overflow-hidden">
               <div
                 class="h-full bg-nb-accent/50 rounded-full transition-all duration-1000"
-                style="width: {(secondsLeft / 60) * 100}%"
+                style="width: {(secondsLeft / P2P_TIMEOUT_SECONDS) * 100}%"
               ></div>
             </div>
           {:else if senderStatus === 'verifying' || senderStatus === 'sending'}

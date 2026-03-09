@@ -11,6 +11,9 @@
   --font-mono:  "Fira Code", monospace;
 }
 
+/* ── Pointer cursor (Tailwind v4 dropped Preflight rule) ─────────────────── */
+button, [role="button"], a[href], summary { cursor: pointer; }
+
 /* ── Filter tab active state ─────────────────────────────────────────────── */
 :root { --nb-accent: #c5b358; }
 
@@ -48,6 +51,9 @@
   color: #d4d4d2;
   border-color: rgba(255,255,255,0.15);
   background: rgba(255,255,255,0.04);
+}
+@media (max-width: 767px) {
+  .icon-action { width: 36px; height: 36px; }
 }
 
 /* ── Scrollbar global ────────────────────────────────────────────────────── */

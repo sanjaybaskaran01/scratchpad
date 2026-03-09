@@ -6,11 +6,13 @@
   const isSearching = $derived(clipsState.searchQuery.trim().length > 0);
 </script>
 
-<header class="h-14 border-b border-white/5 bg-nb-side flex items-center justify-between px-6 shrink-0">
-  <div class="flex items-center gap-6">
+<header class="min-h-14 border-b border-white/8 bg-[rgba(20,20,20,0.85)] backdrop-blur-[12px] flex flex-wrap md:flex-nowrap items-center justify-between px-4 md:px-6 py-2 md:py-0 gap-y-2 shrink-0">
+  <div class="flex items-center gap-3 md:gap-6 flex-wrap">
     <div class="flex items-center gap-2">
-      <span class="material-symbols-outlined text-nb-accent" style="font-size:20px">edit_note</span>
-      <h1 class="text-sm font-medium tracking-wide uppercase">Scratchpad</h1>
+      <div class="w-7 h-7 bg-nb-accent rounded-md flex items-center justify-center">
+        <span class="material-symbols-outlined text-[#111]" style="font-size:14px">edit_note</span>
+      </div>
+      <h1 class="text-sm font-semibold tracking-[0.08em] uppercase">Scratchpad</h1>
     </div>
     {#if isSearching}
       <div class="flex items-center gap-1.5 text-xs text-nb-muted">
@@ -22,13 +24,13 @@
         >Clear</button>
       </div>
     {:else}
-      <nav class="flex items-center gap-1 text-xs font-medium text-nb-muted" role="tablist">
+      <nav class="flex items-center gap-1 text-[11px] md:text-xs font-medium text-nb-muted" role="tablist">
         {#each ['all', 'code', 'image', 'text'] as filter}
           <button
             role="tab"
             aria-selected={clipsState.activeFilter === filter}
             data-filter={filter}
-            class="filter-tab px-3 py-1 transition-colors hover:text-nb-text"
+            class="filter-tab px-2 md:px-3 py-1 transition-colors hover:text-nb-text"
             class:active-tab={clipsState.activeFilter === filter}
             onclick={() => clipsState.activeFilter = filter}
           >
@@ -50,7 +52,7 @@
         id="search-input"
         bind:this={searchInputEl}
         type="search"
-        class="bg-nb-bg border rounded-full pl-9 py-1.5 text-xs w-56 outline-none focus:ring-1 focus:ring-nb-accent/40 focus:border-nb-accent/40 transition-all placeholder:text-white/20
+        class="bg-nb-bg border rounded-full pl-9 py-1.5 text-xs w-32 md:w-56 outline-none focus:ring-1 focus:ring-nb-accent/40 focus:border-nb-accent/40 transition-all placeholder:text-white/20
           {isSearching ? 'border-nb-accent text-nb-accent pr-8' : 'border-white/5 pr-4'}"
         placeholder="Search clips  ⌘K"
         autocomplete="off"
@@ -68,20 +70,20 @@
       {/if}
     </div>
     <button
-      class="flex items-center gap-1.5 px-3 py-1.5 bg-nb-card border border-white/10 rounded text-xs text-nb-muted hover:text-nb-text hover:border-white/20 transition-colors"
+      class="flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-nb-card border border-white/10 rounded text-xs text-nb-muted hover:text-nb-text hover:border-white/20 transition-colors"
       title="Receive a clip via P2P"
       onclick={onReceive}
     >
       <span class="material-symbols-outlined" style="font-size:14px">download_for_offline</span>
-      Receive
+      <span class="hidden md:inline">Receive</span>
     </button>
     <button
-      class="flex items-center gap-1.5 px-3 py-1.5 bg-nb-accent/10 border border-nb-accent/20 rounded text-xs text-nb-accent hover:bg-nb-accent/20 transition-colors"
+      class="flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-nb-accent/10 border border-nb-accent/20 rounded text-xs text-nb-accent hover:bg-nb-accent/20 transition-colors"
       title="New empty clip (n)"
       onclick={onNewClip}
     >
       <span class="material-symbols-outlined" style="font-size:14px">add</span>
-      New
+      <span class="hidden md:inline">New</span>
     </button>
   </div>
 </header>

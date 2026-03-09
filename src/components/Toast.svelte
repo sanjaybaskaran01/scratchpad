@@ -7,7 +7,7 @@
   role="status"
   aria-live="polite"
   aria-atomic="true"
-  class="toast fixed bottom-14 left-1/2 -translate-x-1/2 pointer-events-none
+  class="toast fixed bottom-4 md:bottom-14 left-1/2 -translate-x-1/2 pointer-events-none
          bg-nb-card border text-nb-text text-xs rounded-lg px-4 py-2.5
          shadow-2xl whitespace-nowrap z-50"
   class:opacity-0={!uiState.toast.visible}

@@ -35,26 +35,12 @@
       : `${timeAgo(clip.createdAt)} · ${fmtBytes(clip.originalSizeBytes || clip.sizeBytes)}`
   );
 
-  let copyBtnEl = $state(null);
-
-  function flashCopyBtn() {
-    if (!copyBtnEl) return;
-    copyBtnEl.classList.add('copied-anim');
-    copyBtnEl.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">check</span>Copied!';
-    copyBtnEl.style.color = '#c5b358';
-    copyBtnEl.style.borderColor = 'rgba(197,179,88,0.3)';
-    setTimeout(() => {
-      if (!copyBtnEl) return;
-      copyBtnEl.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px">content_copy</span>Copy';
-      copyBtnEl.style.color = '';
-      copyBtnEl.style.borderColor = '';
-      copyBtnEl.classList.remove('copied-anim');
-    }, 1800);
-  }
+  let copied = $state(false);
 
   async function handleCopy() {
     await onCopy(clip, rawText);
-    flashCopyBtn();
+    copied = true;
+    setTimeout(() => { copied = false; }, 1800);
   }
 
   // ── Edit mode ────────────────────────────────────────────────────────────────
@@ -116,7 +102,7 @@
 </script>
 
 <div id="clip-detail-{clip.id}" class="detail-card space-y-4" tabindex="0">
-  <div class="flex items-start justify-between gap-4">
+  <div class="flex flex-col md:flex-row md:items-start justify-between gap-2 md:gap-4">
     <div>
       <div class="flex items-center gap-2">
         <h2 class="text-xl font-light text-nb-text">{typeLabel} Clip</h2>
@@ -148,13 +134,13 @@
       {/if}
       <p class="text-sm text-nb-muted mt-0.5">{metaLine}</p>
     </div>
-    <div class="flex items-center gap-2 shrink-0 pt-1">
+    <div class="flex flex-wrap items-center gap-2 shrink-0 pt-0 md:pt-1">
       <button
-        bind:this={copyBtnEl}
-        class="btn-copy flex items-center gap-1.5 px-3 py-1.5 bg-nb-card border border-white/10 rounded text-xs hover:bg-nb-accent/10 hover:border-nb-accent/30 transition-colors"
+        class="btn-copy flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-nb-card border rounded text-xs hover:bg-nb-accent/10 hover:border-nb-accent/30 transition-colors {copied ? 'copied-anim' : ''}"
+        style={copied ? 'color: #c5b358; border-color: rgba(197,179,88,0.3)' : 'border-color: rgba(255,255,255,0.1)'}
         onclick={handleCopy}
       >
-        <span class="material-symbols-outlined" style="font-size:14px">content_copy</span>Copy
+        <span class="material-symbols-outlined" style="font-size:14px">{copied ? 'check' : 'content_copy'}</span><span class="hidden md:inline">{copied ? 'Copied!' : 'Copy'}</span>
       </button>
       {#if clip.type !== 'image'}
         <button

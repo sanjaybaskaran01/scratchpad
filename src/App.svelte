@@ -63,6 +63,15 @@
   async function checkURLShare() {
     const hash = location.hash.slice(1);
     if (!hash) return;
+
+    // P2P shareable link: #p2p=XXXXXXXX
+    const p2pMatch = hash.match(/^p2p=([A-Za-z0-9]{8})$/);
+    if (p2pMatch) {
+      history.replaceState(null, '', location.pathname);
+      uiState.p2pShare = { open: true, mode: 'receiver', clip: null, code: null, peer: null, prefillCode: p2pMatch[1] };
+      return;
+    }
+
     const shared = decodeFromURL(hash);
     if (!shared) return;
     history.replaceState(null, '', location.pathname);
@@ -223,6 +232,15 @@
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────────
+  async function convertToPng(blob) {
+    const bmp = await createImageBitmap(blob);
+    const canvas = new OffscreenCanvas(bmp.width, bmp.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bmp, 0, 0);
+    bmp.close();
+    return await canvas.convertToBlob({ type: 'image/png' });
+  }
+
   async function handleCopy(clip, rawText) {
     if (clip.type === 'image') {
       const blob = await getBlob(clip.blobId);
@@ -231,7 +249,17 @@
           await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
           showToast('Copied to clipboard!');
           return;
-        } catch {}
+        } catch {
+          // Non-PNG blobs fail in most browsers — convert and retry
+          try {
+            const pngBlob = await convertToPng(blob);
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+            showToast('Copied to clipboard!');
+            return;
+          } catch (e) {
+            console.error('Image copy failed:', e);
+          }
+        }
       }
       showToast('Could not copy image — try downloading.', 'error');
       return;
@@ -465,7 +493,7 @@
       uiState.imageModal.open = false;
       if (uiState.p2pShare.open) {
         uiState.p2pShare.peer?.destroy();
-        uiState.p2pShare = { open: false, mode: null, clip: null, code: null, peer: null };
+        uiState.p2pShare = { open: false, mode: null, clip: null, code: null, peer: null, prefillCode: null };
       }
       if (inSearch) searchInputEl?.blur();
       return;
@@ -577,7 +605,7 @@
   </div>
 
   <!-- Footer -->
-  <footer class="h-10 border-t border-white/5 bg-nb-side px-6 flex items-center justify-between text-[10px] text-nb-muted shrink-0">
+  <footer class="h-10 border-t border-white/5 bg-nb-side px-6 hidden md:flex items-center justify-between text-[10px] text-nb-muted shrink-0">
     <div class="flex items-center gap-6">
       <div class="flex items-center gap-2">
         <kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded font-mono">⌘V</kbd>

@@ -20,7 +20,7 @@
   }
 </script>
 
-<aside class="w-72 border-r border-white/5 bg-nb-side flex flex-col overflow-hidden shrink-0">
+<aside class="w-72 border-r border-white/5 bg-nb-side hidden md:flex flex-col overflow-hidden shrink-0">
   {#if visibleClips.length > 0}
     <div id="sidebar-list" class="flex-1 overflow-y-auto p-3 space-y-1 min-h-0">
       {#each visibleClips as clip (clip.id)}

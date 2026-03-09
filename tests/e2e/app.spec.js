@@ -31,7 +31,7 @@ async function pasteText(page, text) {
 // app is fully initialised by the time that event resolves.
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto('/app/', { waitUntil: 'domcontentloaded' });
   // Fresh context = no clips. App.js async-inits from IndexedDB, then shows
   // the paste zone.  Wait for that signal so the DOM is fully settled.
   await page.waitForSelector('#paste-zone', { state: 'visible', timeout: 8000 });
