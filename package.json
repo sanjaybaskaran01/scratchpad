@@ -1,6 +1,6 @@
 {
   "name": "typehere",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,10 +15,13 @@
     "test:all": "vitest run && playwright test"
   },
   "dependencies": {
+    "dompurify": "^3.3.2",
     "flexsearch": "^0.7.43",
     "highlight.js": "^11.10.0",
     "idb": "^8.0.0",
     "lz-string": "^1.5.0",
+    "magika": "^1.0.0",
+    "marked": "^17.0.4",
     "peerjs": "^1.5.5",
     "svelte": "^5.0.0"
   },

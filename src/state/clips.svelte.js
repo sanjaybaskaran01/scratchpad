@@ -35,9 +35,10 @@ export function computeVisibleClips() {
     }
   }
 
-  if (clipsState.activeFilter === 'code')  pool = pool.filter(c => c.language);
+  // 'plaintext' is not a programming language — keep it in the text bucket
+  if (clipsState.activeFilter === 'code')  pool = pool.filter(c => c.language && c.language !== 'plaintext');
   if (clipsState.activeFilter === 'image') pool = pool.filter(c => c.type === 'image');
-  if (clipsState.activeFilter === 'text')  pool = pool.filter(c => !c.language && c.type !== 'image');
+  if (clipsState.activeFilter === 'text')  pool = pool.filter(c => (!c.language || c.language === 'plaintext') && c.type !== 'image');
 
   return pool;
 }

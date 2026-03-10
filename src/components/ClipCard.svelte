@@ -220,9 +220,9 @@
     </div>
   {:else if clip.type === 'image'}
     <ImageBlock {clip} />
-  {:else if clip.language}
+  {:else if clip.language && clip.language !== 'markdown'}
     <CodeBlock {clip} {rawText} />
   {:else}
-    <TextBlock {rawText} />
+    <TextBlock {rawText} language={clip.language || ''} />
   {/if}
 </div>

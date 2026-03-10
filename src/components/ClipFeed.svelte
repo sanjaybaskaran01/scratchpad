@@ -6,7 +6,7 @@
   import PasteZone     from './PasteZone.svelte';
   import Scratchpad    from './Scratchpad.svelte';
 
-  let { onCopy, onShare, onDownload, onPin, onDelete, onScratchpadCommit, onEdit, onChangeLanguage, onImagePaste, onP2PSend } = $props();
+  let { onCopy, onShare, onDownload, onPin, onDelete, onScratchpadCommit, onEdit, onChangeLanguage, onImagePaste, onP2PSend, isDragging = false } = $props();
 
   const showFeed = $derived(
     visibleClips.length > 0 || uiState.scratchpadActive
@@ -15,7 +15,7 @@
 
 <main id="main-content" class="flex-1 overflow-y-auto bg-nb-bg safe-bottom">
   {#if !showFeed}
-    <PasteZone />
+    <PasteZone {isDragging} />
   {:else}
     <div id="clip-feed" class="max-w-3xl w-full mx-auto px-3 sm:px-4 md:px-8 py-4 md:py-8 space-y-4 sm:space-y-6 md:space-y-8">
       {#if uiState.scratchpadActive}

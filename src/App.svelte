@@ -20,7 +20,7 @@
   } from './lib/storage.js';
 
   import { copyToClipboard, getShareInfo, decodeFromURL } from './lib/sharing.js';
-  import { highlightSnippet } from './lib/highlight.js';
+  import { detectLanguage, getMagika } from './lib/highlight.js';
   import { generateCode } from './lib/p2p.js';
 
   import Header          from './components/Header.svelte';
@@ -37,20 +37,40 @@
   // ── Refs ─────────────────────────────────────────────────────────────────────
   let searchInputEl = $state(null);
 
+  // ── Drag state ───────────────────────────────────────────────────────────────
+  let isDragging = $state(false);
+  let dragCounter = 0;
+
+  // ── PWA install prompt ───────────────────────────────────────────────────────
+  let deferredInstallPrompt = $state(null);
+
   // ── Scratchpad state ─────────────────────────────────────────────────────────
   let scratchpadClipId = null;
+
+  // ── Undo delete — tracks pending UI-removal timeouts by clip ID ──────────────
+  const deletingTimers = new Map();
 
   // ── Init ─────────────────────────────────────────────────────────────────────
   $effect(() => {
     initApp();
-    document.addEventListener('paste',   onGlobalPaste);
-    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    document.addEventListener('paste',      onGlobalPaste);
+    document.addEventListener('keydown',    onKeyDown);
+    document.addEventListener('dragenter',  onDragEnter);
+    document.addEventListener('dragleave',  onDragLeave);
+    document.addEventListener('dragover',   onDragOver);
+    document.addEventListener('drop',       onDrop);
     document.addEventListener('visibilitychange', onVisibilityChange);
     const timer = setInterval(updateStorage, 30_000);
     const unsubSync = onStorageChange(() => loadClips());
     return () => {
-      document.removeEventListener('paste',   onGlobalPaste);
-      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      document.removeEventListener('paste',      onGlobalPaste);
+      document.removeEventListener('keydown',    onKeyDown);
+      document.removeEventListener('dragenter',  onDragEnter);
+      document.removeEventListener('dragleave',  onDragLeave);
+      document.removeEventListener('dragover',   onDragOver);
+      document.removeEventListener('drop',       onDrop);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       clearInterval(timer);
       unsubSync();
@@ -62,6 +82,7 @@
   }
 
   async function initApp() {
+    getMagika(); // pre-warm model download; don't await
     await purgeExpired();
     await loadClips();
     checkURLShare();
@@ -83,16 +104,21 @@
 
     const shared = decodeFromURL(hash);
     if (!shared) return;
-    history.replaceState(null, '', location.pathname);
-    await createTextClip(shared.content, { language: shared.language, label: shared.label, skipDupeCheck: true });
-    showToast('Shared clip loaded!');
+    // Remove hash only after a successful save so a failed write (quota exceeded,
+    // etc.) doesn't silently drop the shared content with no way to recover.
+    const clip = await createTextClip(shared.content, { language: shared.language, label: shared.label, skipDupeCheck: true });
+    if (clip) {
+      history.replaceState(null, '', location.pathname);
+      showToast('Shared clip loaded!');
+    }
   }
 
   // ── Search index ─────────────────────────────────────────────────────────────
   function buildSearchIndex() {
     const idx = new FlexDocument({
       tokenize: 'forward',
-      cache: 100,
+      cache: false, // disabled: FlexSearch cache doesn't invalidate on document updates,
+                    // so cached results would show stale content after clip edits
       document: {
         id: 'id',
         index: [
@@ -128,11 +154,14 @@
   // ── Load clips ───────────────────────────────────────────────────────────────
   async function loadClips() {
     const clips = await getAllClips();
-    clipsState.all = clips;
+    // Filter out the in-progress scratchpad draft so it never appears in the
+    // feed while the scratchpad is open (e.g. when returning to this tab).
+    const filtered = scratchpadClipId ? clips.filter(c => c.id !== scratchpadClipId) : clips;
+    clipsState.all = filtered;
     buildSearchIndex();
     // Preserve current selection if the clip still exists, otherwise select first
-    if (!clipsState.selectedId || !clips.find(c => c.id === clipsState.selectedId)) {
-      clipsState.selectedId = clips[0]?.id || null;
+    if (!clipsState.selectedId || !filtered.find(c => c.id === clipsState.selectedId)) {
+      clipsState.selectedId = filtered[0]?.id || null;
     }
   }
 
@@ -174,8 +203,63 @@
     }
   }
 
+  // ── PWA install prompt ───────────────────────────────────────────────────────
+  function onBeforeInstallPrompt(e) {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  }
+
+  async function handleInstallApp() {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+  }
+
+  // ── Drag-and-drop handler ────────────────────────────────────────────────────
+  function onDragEnter(e) {
+    if (!e.dataTransfer?.types?.includes('Files')) return;
+    dragCounter++;
+    isDragging = true;
+  }
+
+  function onDragLeave() {
+    dragCounter--;
+    if (dragCounter <= 0) { dragCounter = 0; isDragging = false; }
+  }
+
+  function onDragOver(e) {
+    if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
+  }
+
+  async function onDrop(e) {
+    dragCounter = 0;
+    isDragging = false;
+    if (!e.dataTransfer?.files?.length) return;
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    for (const file of files) {
+      if (file.type.startsWith('image/')) {
+        await handleImagePaste(file);
+      } else if (isDroppableTextFile(file)) {
+        const text = await file.text();
+        if (text.trim()) await createTextClip(text, { label: file.name });
+      }
+    }
+  }
+
+  function isDroppableTextFile(file) {
+    return file.type.startsWith('text/') || file.type === '' ||
+      /\.(txt|md|csv|log|conf|cfg|ini|env|sh|py|js|ts|jsx|tsx|json|yaml|yml|toml|sql|html|css|xml|svg|rs|go|rb|php|java|c|cpp|h|cs)$/i.test(file.name);
+  }
+
   // ── Create clips ─────────────────────────────────────────────────────────────
   async function createTextClip(text, opts = {}) {
+    if (uiState.storageUsed > SOFT_LIMIT_BYTES) {
+      showToast('Storage full (>50 MB) — delete some clips first.', 'error', 5000);
+      return null;
+    }
+
     const hash = await hashText(text);
 
     if (!opts.skipDupeCheck) {
@@ -187,8 +271,7 @@
       }
     }
 
-    const { language } = highlightSnippet(text);
-    const lang  = opts.language || language;
+    const lang  = opts.language || await detectLanguage(text);
     const creds = detectCredentials(text);
     const lines = text.split('\n').length;
     const { compressed, data, originalSize, size } = compressText(text);
@@ -212,6 +295,10 @@
   }
 
   async function handleImagePaste(rawBlob) {
+    if (uiState.storageUsed > SOFT_LIMIT_BYTES) {
+      showToast('Storage full (>50 MB) — delete some clips first.', 'error', 5000);
+      return;
+    }
     let result;
     try { result = await optimizeImage(rawBlob); }
     catch (err) { showToast(err.message, 'error'); return; }
@@ -326,8 +413,8 @@
     updateStorage();
   }
 
-  // ── Undo delete — session-level stack (no expiry) ───────────────────────────
-  // Each entry: { clip, blob, insertIdx }
+  // ── Undo stack — session-level (no expiry) ──────────────────────────────────
+  // Each entry: { type: 'delete', clip, blob, insertIdx } or { type: 'edit', clip }
   // Capped at 100 entries to keep memory reasonable.
   const undoStack = [];
   const UNDO_STACK_MAX = 100;
@@ -344,41 +431,70 @@
       blobSnapshot = await getBlob(clip.blobId);
     }
 
-    // Remove from UI after animation
-    setTimeout(() => {
+    // Remove from UI after animation; clearTimeout in undoAction() cancels this
+    const timer = setTimeout(() => {
+      deletingTimers.delete(clip.id);
       clipsState.all = clipsState.all.filter(c => c.id !== clip.id);
       if (clipsState.selectedId === clip.id) {
         clipsState.selectedId = clipsState.all[0]?.id || null;
       }
     }, 180);
+    deletingTimers.set(clip.id, timer);
 
     await deleteClip(clip.id);
     removeFromIndex(clip.id);
     updateStorage();
 
     // Push to undo stack (trim if over cap)
-    undoStack.push({ clip: clipSnapshot, blob: blobSnapshot, insertIdx });
+    undoStack.push({ type: 'delete', clip: clipSnapshot, blob: blobSnapshot, insertIdx });
     if (undoStack.length > UNDO_STACK_MAX) undoStack.shift();
 
     const depth = undoStack.length;
     showToast(`Deleted — Z to undo${depth > 1 ? ` (${depth} in stack)` : ''}`, 'info', 4000);
   }
 
-  async function undoDelete() {
+  async function undoAction() {
     if (!undoStack.length) return;
-    const { clip, blob, insertIdx } = undoStack.pop();
+    const entry = undoStack.pop();
 
-    // Restore to storage exactly as it was
-    await restoreClip(clip, blob);
+    if (entry.type === 'delete') {
+      const { clip, blob, insertIdx } = entry;
 
-    const idx = Math.min(insertIdx, clipsState.all.length);
-    clipsState.all.splice(idx, 0, clip);
-    indexClip(clip);
-    selectAndReveal(clip.id);
-    updateStorage();
+      // Cancel the pending UI-removal timeout for this clip, if any
+      clearTimeout(deletingTimers.get(clip.id));
+      deletingTimers.delete(clip.id);
 
-    const remaining = undoStack.length;
-    showToast(`Clip restored!${remaining > 0 ? ` (${remaining} more in stack)` : ''}`);
+      // Restore to storage exactly as it was
+      await restoreClip(clip, blob);
+
+      const idx = Math.min(insertIdx, clipsState.all.length);
+      clipsState.all.splice(idx, 0, clip);
+      indexClip(clip);
+      selectAndReveal(clip.id);
+      updateStorage();
+
+      const remaining = undoStack.length;
+      showToast(`Clip restored!${remaining > 0 ? ` (${remaining} more)` : ''}`);
+
+    } else if (entry.type === 'edit') {
+      const { clip } = entry;
+
+      // Restore previous content via restoreClip (raw upsert, preserves all fields)
+      await restoreClip(clip, null);
+
+      // Update in-place in clipsState.all
+      const idx = clipsState.all.findIndex(c => c.id === clip.id);
+      if (idx >= 0) clipsState.all[idx] = clip;
+
+      // Re-index with previous content
+      removeFromIndex(clip.id);
+      indexClip(clip);
+      selectAndReveal(clip.id);
+      updateStorage();
+
+      const remaining = undoStack.length;
+      showToast(`Edit undone!${remaining > 0 ? ` (${remaining} more)` : ''}`);
+    }
   }
 
   // ── Scratchpad ───────────────────────────────────────────────────────────────
@@ -386,7 +502,7 @@
     if (action === 'save-draft') {
       // Auto-save draft to session storage only — don't show in feed yet
       if (!text.trim()) return;
-      const { language } = highlightSnippet(text);
+      const language = await detectLanguage(text);
       const hash  = await hashText(text);
       const lines = text.split('\n').length;
       const { compressed, data, originalSize, size } = compressText(text);
@@ -425,7 +541,14 @@
   }
 
   async function handleEdit(clip, newText) {
-    const { language } = highlightSnippet(newText);
+    // Snapshot before overwriting so z can revert
+    const previousClip = { ...clip };
+
+    const detectedLang = await detectLanguage(newText);
+    // Preserve a manually-set language (flagged by languageManual: true on the
+    // clip). Only fall back to auto-detection if the language was never manually
+    // overridden by the user.
+    const language = clip.languageManual ? clip.language : detectedLang;
     const hash  = await hashText(newText);
     const lines = newText.split('\n').length;
     const { compressed, data, originalSize, size } = compressText(newText);
@@ -440,10 +563,15 @@
     if (idx >= 0) clipsState.all[idx] = updated;
     removeFromIndex(clip.id);
     indexClip(updated);
+
+    undoStack.push({ type: 'edit', clip: previousClip });
+    if (undoStack.length > UNDO_STACK_MAX) undoStack.shift();
+    showToast(`Saved — Z to undo`);
   }
 
   async function handleChangeLanguage(clip, newLang) {
-    const updated = { ...clip, language: newLang };
+    // Mark as manually set so handleEdit doesn't re-detect and overwrite it
+    const updated = { ...clip, language: newLang, languageManual: true };
     await saveTextClip(updated);
     const idx = clipsState.all.findIndex(c => c.id === clip.id);
     if (idx >= 0) clipsState.all[idx] = updated;
@@ -475,6 +603,15 @@
       });
     } else {
       const content = new TextDecoder().decode(bodyBuffer);
+      // Deduplicate: the compressed wire format means the hash must be computed
+      // on the decoded text, matching the hash stored at creation time.
+      const hash = await hashText(content);
+      const dupe = await findByHash(hash);
+      if (dupe) {
+        selectAndReveal(dupe.id);
+        showToast('Already have this clip — scrolled to it', 'warn');
+        return;
+      }
       clip = await saveTextClip({
         content,
         language:          meta.language,
@@ -485,7 +622,7 @@
         pinned:            false,
         sizeBytes:         bodyBuffer.byteLength,
         originalSizeBytes: bodyBuffer.byteLength,
-        contentHash:       null,
+        contentHash:       hash,
       });
     }
     clipsState.all.unshift(clip);
@@ -555,7 +692,7 @@
     }
 
     if (!clipsState.selectedId) {
-      if (isBare && e.key === 'z') { e.preventDefault(); undoDelete(); return; }
+      if (isBare && e.key === 'z') { e.preventDefault(); undoAction(); return; }
       if (isBare && e.key.length === 1) {
         e.preventDefault();
         uiState.scratchpadInitChar = e.key;
@@ -572,7 +709,7 @@
       switch (e.key) {
         case 'p': e.preventDefault(); handlePin(clip); return;
         case 'x': e.preventDefault(); handleDelete(clip); return;
-        case 'z': e.preventDefault(); undoDelete(); return;
+        case 'z': e.preventDefault(); undoAction(); return;
         case 'c': e.preventDefault(); handleCopy(clip, rawText); return;
         case 's': e.preventDefault(); handleShare(clip, rawText); return;
         case 'i':
@@ -661,6 +798,7 @@
       onChangeLanguage={handleChangeLanguage}
       onImagePaste={handleImagePaste}
       onP2PSend={handleP2PSend}
+      {isDragging}
     />
   </div>
 
@@ -684,7 +822,19 @@
         <span class="uppercase tracking-wider">Help</span>
       </div>
     </div>
-    <div class="italic opacity-40">Local browser storage only</div>
+    <div class="flex items-center gap-4">
+      {#if deferredInstallPrompt}
+        <button
+          class="flex items-center gap-1.5 px-2.5 py-1 bg-nb-accent/10 border border-nb-accent/30 rounded text-[10px] text-nb-accent uppercase tracking-wider hover:bg-nb-accent/20 transition-colors"
+          onclick={handleInstallApp}
+          title="Install Scratchpad as a desktop app"
+        >
+          <span class="material-symbols-outlined" style="font-size:12px">install_desktop</span>
+          Install app
+        </button>
+      {/if}
+      <div class="italic opacity-40">Local browser storage only</div>
+    </div>
   </footer>
 
   <Toast />

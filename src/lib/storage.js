@@ -170,10 +170,12 @@ export async function saveImageClip(blob, meta = {}) {
     schemaVersion: 2,
   };
   const d = await getDB();
-  await Promise.all([
-    d.put('blobs', { blobId, data: blob }),
-    d.put('clips', clip),
-  ]);
+  // Write blob and metadata in a single atomic transaction so a crash between
+  // the two writes can never leave a clip entry referencing a missing blob.
+  const tx = d.transaction(['clips', 'blobs'], 'readwrite');
+  tx.objectStore('blobs').put({ blobId, data: blob });
+  tx.objectStore('clips').put(clip);
+  await tx.done;
   broadcastChange('save', clip.id);
   return clip;
 }
@@ -185,10 +187,11 @@ export async function saveImageClip(blob, meta = {}) {
 export async function restoreClip(clip, blob = null) {
   if (clip.type === 'image' && blob) {
     const d = await getDB();
-    await Promise.all([
-      d.put('clips', clip),
-      d.put('blobs', { blobId: clip.blobId, data: blob }),
-    ]);
+    // Atomic: both stores succeed or both roll back
+    const tx = d.transaction(['clips', 'blobs'], 'readwrite');
+    tx.objectStore('clips').put(clip);
+    tx.objectStore('blobs').put({ blobId: clip.blobId, data: blob });
+    await tx.done;
     broadcastChange('restore', clip.id);
   } else if (clip.type === 'text') {
     if (clip.ephemeral) {
@@ -209,8 +212,8 @@ export async function findByHash(hash) {
   const session = getSessionClips().find(c => c.contentHash === hash);
   if (session) return session;
   const d = await getDB();
-  const saved = await d.getAll('clips');
-  return saved.find(c => c.contentHash === hash) || null;
+  // Use the contentHash index instead of a full table scan
+  return (await d.getFromIndex('clips', 'contentHash', hash)) || null;
 }
 
 export async function pinClip(id) {
@@ -218,10 +221,12 @@ export async function pinClip(id) {
   const idx = sessionClips.findIndex(c => c.id === id);
   if (idx >= 0) {
     const clip = { ...sessionClips[idx], ephemeral: false, pinned: true, expiresAt: Infinity };
-    sessionClips.splice(idx, 1);
-    saveSessionClips(sessionClips);
+    // Write to IDB before removing from session so a crash between the two
+    // steps leaves the clip in IDB rather than losing it entirely.
     const d = await getDB();
     await d.put('clips', clip);
+    sessionClips.splice(idx, 1);
+    saveSessionClips(sessionClips);
     broadcastChange('pin', clip.id);
     return clip;
   }
@@ -290,7 +295,19 @@ export async function purgeExpired() {
   const clips = await d.getAll('clips');
   const now = Date.now();
   const expired = clips.filter(c => !c.pinned && c.expiresAt !== Infinity && c.expiresAt < now);
-  await Promise.all(expired.map(c => deleteClip(c.id)));
+  if (!expired.length) return 0;
+  // Delete all expired clips in a single transaction with one broadcast at the
+  // end. The old pattern (deleteClip per clip) emitted N broadcasts causing
+  // every other tab to rebuild its search index N times on startup.
+  const tx = d.transaction(['clips', 'blobs'], 'readwrite');
+  const clipsStore = tx.objectStore('clips');
+  const blobsStore = tx.objectStore('blobs');
+  for (const c of expired) {
+    clipsStore.delete(c.id);
+    if (c.blobId) blobsStore.delete(c.blobId);
+  }
+  await tx.done;
+  broadcastChange('purge', null);
   return expired.length;
 }
 
