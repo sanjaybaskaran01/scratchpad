@@ -190,7 +190,7 @@
     const clip = await saveTextClip({
       content: data, language: lang, compressed,
       sizeBytes: size, originalSizeBytes: originalSize,
-      label: opts.label || '', ephemeral: true, pinned: false,
+      label: opts.label || '', ephemeral: false, pinned: false,
       contentHash: hash, lineCount: lines,
     });
 
@@ -475,7 +475,7 @@
         compressed:        meta.compressed,
         label:             meta.label || 'Received clip',
         lineCount:         meta.lineCount,
-        ephemeral:         true,
+        ephemeral:         false,
         pinned:            false,
         sizeBytes:         bodyBuffer.byteLength,
         originalSizeBytes: bodyBuffer.byteLength,
