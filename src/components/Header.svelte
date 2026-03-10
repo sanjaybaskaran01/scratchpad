@@ -15,7 +15,7 @@
     >
       <span class="material-symbols-outlined" style="font-size:20px">menu</span>
     </button>
-    <div class="flex items-center gap-2 shrink-0">
+    <div class="flex items-center gap-2 shrink-0" title={`v${__APP_VERSION__} (${__GIT_HASH__})`}>
       <div class="w-7 h-7 bg-nb-accent rounded-md flex items-center justify-center">
         <span class="material-symbols-outlined text-[#111]" style="font-size:14px">edit_note</span>
       </div>
