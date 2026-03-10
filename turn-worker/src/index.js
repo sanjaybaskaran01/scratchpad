@@ -42,6 +42,10 @@ export default {
     }
 
     try {
+      if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) {
+        return new Response('Missing TURN secrets', { status: 500, headers });
+      }
+
       const res = await fetch(
         `https://rtc.live.cloudflare.com/v1/turn/keys/${env.TURN_KEY_ID}/credentials/generate-ice-servers`,
         {
@@ -55,15 +59,22 @@ export default {
       );
 
       if (!res.ok) {
-        return new Response('Failed to generate credentials', { status: 502, headers });
+        return new Response(`Upstream error (${res.status})`, { status: 502, headers });
       }
 
       const data = await res.json();
-      return Response.json(data.iceServers, {
+
+      // Filter port 53 URLs from each entry — browsers block them and TURN will time out
+      const iceServers = data.iceServers.map(server => ({
+        ...server,
+        urls: (server.urls || []).filter(u => !/:53($|\?)/.test(u)),
+      }));
+
+      return Response.json(iceServers, {
         headers: { ...headers, 'Cache-Control': 'public, max-age=3600' },
       });
-    } catch {
-      return new Response('Internal error', { status: 500, headers });
+    } catch (err) {
+      return new Response(`Internal error: ${err.message}`, { status: 500, headers });
     }
   },
 };
