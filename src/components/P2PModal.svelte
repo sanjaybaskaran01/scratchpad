@@ -102,10 +102,11 @@
           senderStatus = 'sending';
           try {
             await doSend(conn, key, clip);
-            conn.close();
-            peer.destroy();
+            // Grace period for receiver to process final chunks before teardown
+            await new Promise(r => setTimeout(r, 500));
             senderStatus = 'done';
-            setTimeout(() => close(), 2000);
+            conn.close();
+            setTimeout(() => { peer.destroy(); close(); }, 2000);
           } catch {
             senderStatus = 'error';
             errorMsg     = 'Transfer failed — try again';
@@ -140,6 +141,18 @@
     conn.send(await encrypt(key, metaBuf));
     for (const chunk of chunkBuffer(bodyBuf)) {
       conn.send(await encrypt(key, chunk));
+    }
+    // Wait for the data channel buffer to drain before returning
+    const dc = conn.dataChannel ?? conn._dc;
+    if (dc && dc.bufferedAmount > 0) {
+      await new Promise(resolve => {
+        const t = setTimeout(resolve, 10_000); // hard cap
+        const check = () => {
+          if (!dc || dc.bufferedAmount === 0) { clearTimeout(t); resolve(); }
+          else setTimeout(check, 50);
+        };
+        check();
+      });
     }
   }
 
