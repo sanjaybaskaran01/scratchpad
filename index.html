@@ -23,6 +23,9 @@
   <meta name="twitter:description" content="A local-first developer clipboard. Press any key to capture. Paste code, images, or text. No backend, no account." />
   <meta name="twitter:creator"     content="@sanjaybaskaran01" />
 
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self';" />
+
   <!-- PWA / Mobile -->
   <meta name="theme-color" content="#1a1a1a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -767,6 +770,7 @@
           <p class="feature-desc">
             Press <code>s</code> to copy a URL-encoded share link. Or use P2P
             to transfer directly to another device — no relay server.
+            Press <code>r</code> to receive an incoming P2P clip.
           </p>
         </article>
 
@@ -818,6 +822,10 @@
               <span class="key-sep">/</span>
               <span class="key">z</span>
             </dd>
+          </div>
+          <div class="shortcut-row">
+            <dt class="shortcut-desc">Receive P2P clip</dt>
+            <dd class="shortcut-keys"><span class="key">r</span></dd>
           </div>
           <div class="shortcut-row">
             <dt class="shortcut-desc">All shortcuts</dt>

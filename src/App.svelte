@@ -120,7 +120,9 @@
 
   function removeFromIndex(clipId) {
     if (!searchIndex) return;
-    try { searchIndex.remove(clipId); } catch {}
+    try { searchIndex.remove(clipId); } catch (err) {
+      console.warn('Search index removal failed:', err);
+    }
   }
 
   // ── Load clips ───────────────────────────────────────────────────────────────
@@ -136,7 +138,11 @@
 
   // ── Storage ──────────────────────────────────────────────────────────────────
   async function updateStorage() {
-    uiState.storageUsed = await estimateStorageUsed();
+    try {
+      uiState.storageUsed = await estimateStorageUsed();
+    } catch (err) {
+      console.warn('Storage estimate failed:', err);
+    }
   }
 
   // ── Toast ────────────────────────────────────────────────────────────────────
@@ -529,6 +535,7 @@
     const isBare = !meta && !e.altKey && !e.shiftKey;
 
     if (isBare && e.key === 'n') { e.preventDefault(); uiState.scratchpadActive = true; return; }
+    if (isBare && e.key === 'r') { e.preventDefault(); if (!uiState.p2pShare.open) handleOpenReceive(); return; }
 
     // j/k sidebar navigation
     const visible = visibleClips;

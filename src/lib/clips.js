@@ -152,6 +152,13 @@ export async function optimizeImage(rawBlob) {
 
   const dimensions = await getImageDimensions(rawBlob);
   const { w, h } = dimensions;
+
+  // Guard against image bombs — extremely large dimensions can crash the browser
+  // by allocating a massive canvas (e.g. 100k x 100k = ~40 GB)
+  if (w > 10000 || h > 10000) {
+    throw new Error(`Image dimensions too large (${w}×${h}). Max is 10,000px per side.`);
+  }
+
   const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(w, h));
 
   const newW = Math.round(w * scale);

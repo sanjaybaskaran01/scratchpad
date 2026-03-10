@@ -209,32 +209,59 @@
       let msgIndex    = 0;
       let receivedMeta = null;
       const chunks    = [];
+      let chunkTimeout = null;
+
+      function clearChunkTimeout() {
+        if (chunkTimeout) { clearTimeout(chunkTimeout); chunkTimeout = null; }
+      }
+
+      function resetChunkTimeout() {
+        clearChunkTimeout();
+        chunkTimeout = setTimeout(() => {
+          if (!['done', 'error'].includes(receiverStatus)) {
+            receiverStatus = 'error';
+            errorMsg = 'Transfer stalled — no data received for 30 seconds';
+          }
+        }, 30_000);
+      }
 
       conn.on('data', async data => {
         try {
           const decrypted = await decrypt(key, data);
           if (msgIndex === 0) {
-            receivedMeta   = deserializeMeta(decrypted);
+            receivedMeta = deserializeMeta(decrypted);
+            // Validate metadata to prevent DoS from malicious senders
+            if (!receivedMeta || typeof receivedMeta.totalChunks !== 'number' ||
+                receivedMeta.totalChunks < 1 || receivedMeta.totalChunks > 1000 ||
+                !['text', 'image'].includes(receivedMeta.type)) {
+              throw new Error('Invalid metadata from sender');
+            }
             receiverStatus = 'receiving';
+            resetChunkTimeout();
           } else {
             chunks.push(decrypted);
             if (chunks.length === receivedMeta.totalChunks) {
+              clearChunkTimeout();
               const bodyBuf = reassemble(chunks);
               await onReceiveClip(receivedMeta, bodyBuf);
               receiverStatus = 'done';
               setTimeout(() => close(), 2000);
+            } else {
+              resetChunkTimeout();
             }
           }
           msgIndex++;
         } catch (err) {
+          clearChunkTimeout();
           receiverStatus = 'error';
           errorMsg = err instanceof DOMException
             ? 'Decryption failed — data may be corrupted'
-            : 'Transfer failed — try again';
+            : (err.message || 'Transfer failed — try again');
         }
       });
 
       conn.on('close', () => {
+        clearChunkTimeout();
         if (!['done', 'error'].includes(receiverStatus)) {
           receiverStatus = 'error';
           errorMsg       = 'Connection dropped — try again';
@@ -242,6 +269,7 @@
       });
 
       conn.on('error', () => {
+        clearChunkTimeout();
         receiverStatus = 'error';
         errorMsg       = 'Connection error — try again';
       });
@@ -274,7 +302,9 @@
       await navigator.clipboard.writeText(url);
       linkCopied = true;
       setTimeout(() => linkCopied = false, 2000);
-    } catch {}
+    } catch (err) {
+      console.warn('Clipboard write failed:', err);
+    }
   }
 
   function onCodeInput(e) {
