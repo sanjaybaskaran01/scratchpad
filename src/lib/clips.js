@@ -194,3 +194,12 @@ export async function optimizeImage(rawBlob) {
 }
 
 export { MAX_IMAGE_BYTES };
+
+// ── URL detection ─────────────────────────────────────────────────────────────
+
+export function isURL(text) {
+  if (!text) return false;
+  const t = text.trim();
+  if (!/^https?:\/\//i.test(t)) return false;
+  try { new URL(t); return true; } catch { return false; }
+}

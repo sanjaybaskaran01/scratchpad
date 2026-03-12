@@ -279,7 +279,7 @@
     const clip = await saveTextClip({
       content: data, language: lang, compressed,
       sizeBytes: size, originalSizeBytes: originalSize,
-      label: opts.label || '', ephemeral: false, pinned: false,
+      label: opts.label || '', ephemeral: false, pinned: true,
       contentHash: hash, lineCount: lines,
     });
 
@@ -599,7 +599,7 @@
         label:      meta.label || 'Received image',
         dimensions: meta.dimensions || null,
         ephemeral:  true,
-        pinned:     false,
+        pinned:     true,
       });
     } else {
       const content = new TextDecoder().decode(bodyBuffer);
@@ -619,7 +619,7 @@
         label:             meta.label || 'Received clip',
         lineCount:         meta.lineCount,
         ephemeral:         false,
-        pinned:            false,
+        pinned:            true,
         sizeBytes:         bodyBuffer.byteLength,
         originalSizeBytes: bodyBuffer.byteLength,
         contentHash:       hash,

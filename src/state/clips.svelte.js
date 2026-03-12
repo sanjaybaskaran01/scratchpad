@@ -1,12 +1,12 @@
 /**
  * clips.svelte.js — shared reactive clip state (Svelte 5 runes, module level)
  */
-import { decompressText } from '../lib/clips.js';
+import { decompressText, isURL } from '../lib/clips.js';
 
 export const clipsState = $state({
   all:          [],      // all clips, sorted newest-first
   selectedId:   null,
-  activeFilter: 'all',   // 'all' | 'code' | 'image' | 'text'
+  activeFilter: 'all',   // 'all' | 'code' | 'image' | 'text' | 'link'
   searchQuery:  '',
   editingClipId: null,   // set externally to trigger edit mode on a specific clip
 });
@@ -39,6 +39,7 @@ export function computeVisibleClips() {
   if (clipsState.activeFilter === 'code')  pool = pool.filter(c => c.language && c.language !== 'plaintext');
   if (clipsState.activeFilter === 'image') pool = pool.filter(c => c.type === 'image');
   if (clipsState.activeFilter === 'text')  pool = pool.filter(c => (!c.language || c.language === 'plaintext') && c.type !== 'image');
+  if (clipsState.activeFilter === 'link')  pool = pool.filter(c => c.type === 'text' && isURL(decompressText(c)));
 
   return pool;
 }

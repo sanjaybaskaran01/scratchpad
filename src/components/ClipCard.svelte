@@ -1,6 +1,6 @@
 <script>
   import { untrack } from 'svelte';
-  import { langLabel, decompressText, LANG_LABELS } from '../lib/clips.js';
+  import { langLabel, decompressText, isURL, LANG_LABELS } from '../lib/clips.js';
   import { clipsState } from '../state/clips.svelte.js';
   import CodeBlock  from './CodeBlock.svelte';
   import TextBlock  from './TextBlock.svelte';
@@ -9,6 +9,7 @@
   let { clip, onCopy, onShare, onDownload, onPin, onDelete, onEdit, onChangeLanguage, onP2PSend } = $props();
 
   const rawText = $derived(clip.type === 'text' ? decompressText(clip) : null);
+  const isLink  = $derived(clip.type === 'text' && isURL(rawText));
 
   function timeAgo(ts) {
     const s = Math.floor((Date.now() - ts) / 1000);
@@ -26,7 +27,9 @@
   }
 
   const typeLabel = $derived(
-    clip.type === 'image' ? 'Image' : (clip.language ? langLabel(clip.language) : 'Plain Text')
+    clip.type === 'image' ? 'Image'
+    : isLink ? 'Link'
+    : (clip.language ? langLabel(clip.language) : 'Plain Text')
   );
 
   const metaLine = $derived(
@@ -220,6 +223,17 @@
     </div>
   {:else if clip.type === 'image'}
     <ImageBlock {clip} />
+  {:else if isLink}
+    <div class="bg-nb-card border border-white/5 rounded-xl overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-white/5 flex items-center gap-2">
+        <span class="material-symbols-outlined text-nb-muted" style="font-size:14px">link</span>
+        <span class="text-[10px] font-bold uppercase tracking-widest text-nb-muted">Link</span>
+      </div>
+      <div class="p-6">
+        <a href={rawText.trim()} target="_blank" rel="noopener noreferrer"
+           class="text-blue-400 hover:underline break-all text-sm">{rawText.trim()}</a>
+      </div>
+    </div>
   {:else if clip.language && clip.language !== 'markdown'}
     <CodeBlock {clip} {rawText} />
   {:else}

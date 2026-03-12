@@ -32,7 +32,7 @@
       </div>
     {:else}
       <nav class="flex items-center gap-1 text-[11px] md:text-xs font-medium text-nb-muted shrink-0" role="tablist">
-        {#each ['all', 'code', 'image', 'text'] as filter}
+        {#each ['all', 'code', 'image', 'text', 'link'] as filter}
           <button
             role="tab"
             aria-selected={clipsState.activeFilter === filter}
@@ -41,7 +41,7 @@
             class:active-tab={clipsState.activeFilter === filter}
             onclick={() => clipsState.activeFilter = filter}
           >
-            {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1) + (filter === 'image' ? 's' : '')}
+            {filter === 'all' ? 'All' : filter === 'link' ? 'Links' : filter.charAt(0).toUpperCase() + filter.slice(1) + (filter === 'image' ? 's' : '')}
           </button>
         {/each}
       </nav>
