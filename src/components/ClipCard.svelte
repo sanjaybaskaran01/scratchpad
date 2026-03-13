@@ -1,6 +1,7 @@
 <script>
   import { untrack } from 'svelte';
   import { langLabel, decompressText, isURL, LANG_LABELS } from '../lib/clips.js';
+  import { handleListContinuation } from '../lib/list-continuation.js';
   import { clipsState } from '../state/clips.svelte.js';
   import CodeBlock  from './CodeBlock.svelte';
   import TextBlock  from './TextBlock.svelte';
@@ -56,6 +57,13 @@
     editing   = true;
   }
 
+  function handleContentClick(e) {
+    if (window.getSelection()?.toString()) return;
+    if (e.target.closest('a')) return;
+    if (e.target.closest('button, select, input')) return;
+    startEdit();
+  }
+
   // Triggered externally (e.g. 'i' key shortcut from App)
   $effect(() => {
     if (clipsState.editingClipId === clip.id && !editing) {
@@ -85,8 +93,9 @@
   }
 
   function onEditKeyDown(e) {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); }
-    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); return; }
+    handleListContinuation(e, editTaEl, () => editValue, v => { editValue = v; });
   }
 
   // ── Language picker ───────────────────────────────────────────────────────────
@@ -223,20 +232,25 @@
     </div>
   {:else if clip.type === 'image'}
     <ImageBlock {clip} />
-  {:else if isLink}
-    <div class="bg-nb-card border border-white/5 rounded-xl overflow-hidden">
-      <div class="px-4 py-2.5 border-b border-white/5 flex items-center gap-2">
-        <span class="material-symbols-outlined text-nb-muted" style="font-size:14px">link</span>
-        <span class="text-[10px] font-bold uppercase tracking-widest text-nb-muted">Link</span>
-      </div>
-      <div class="p-6">
-        <a href={rawText.trim()} target="_blank" rel="noopener noreferrer"
-           class="text-blue-400 hover:underline break-all text-sm">{rawText.trim()}</a>
-      </div>
-    </div>
-  {:else if clip.language && clip.language !== 'markdown'}
-    <CodeBlock {clip} {rawText} />
   {:else}
-    <TextBlock {rawText} language={clip.language || ''} />
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="clip-content-editable cursor-text" role="button" tabindex="-1" onclick={handleContentClick}>
+      {#if isLink}
+        <div class="bg-nb-card border border-white/5 rounded-xl overflow-hidden">
+          <div class="px-4 py-2.5 border-b border-white/5 flex items-center gap-2">
+            <span class="material-symbols-outlined text-nb-muted" style="font-size:14px">link</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-nb-muted">Link</span>
+          </div>
+          <div class="p-6">
+            <a href={rawText.trim()} target="_blank" rel="noopener noreferrer"
+               class="text-blue-400 hover:underline break-all text-sm">{rawText.trim()}</a>
+          </div>
+        </div>
+      {:else if clip.language && clip.language !== 'markdown'}
+        <CodeBlock {clip} {rawText} />
+      {:else}
+        <TextBlock {rawText} language={clip.language || ''} />
+      {/if}
+    </div>
   {/if}
 </div>

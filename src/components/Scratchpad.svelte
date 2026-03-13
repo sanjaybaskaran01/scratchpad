@@ -1,6 +1,7 @@
 <script>
   import { untrack } from 'svelte';
   import { uiState } from '../state/ui.svelte.js';
+  import { handleListContinuation } from '../lib/list-continuation.js';
 
   let { onCommit, onImagePaste } = $props();
 
@@ -45,7 +46,9 @@
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.stopPropagation();
       commit();
+      return;
     }
+    handleListContinuation(e, taEl, () => value, v => { value = v; }, onInput);
   }
 
   function onPaste(e) {

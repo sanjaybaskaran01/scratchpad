@@ -144,6 +144,15 @@ button, [role="button"], a[href], summary { cursor: pointer; }
   transition: box-shadow 150ms ease;
 }
 
+/* ── Click-to-edit hover affordance ──────────────────────────────────────── */
+.clip-content-editable {
+  border-radius: 12px;
+  transition: box-shadow 150ms ease;
+}
+.clip-content-editable:hover {
+  box-shadow: 0 0 0 1px rgba(197, 179, 88, 0.15);
+}
+
 /* ── 12. Clip highlight flash ────────────────────────────────────────────── */
 @keyframes clip-flash {
   0%   { box-shadow: 0 0 0 0 rgba(197,179,88,0.5); transform: scale(1); }
@@ -216,4 +225,5 @@ pre.hljs-pre { margin: 0; background: transparent; }
   #storage-bar { transition: none !important; }
   .detail-card:focus { transition: none !important; }
   .drawer-backdrop, .drawer-panel { transition: none !important; }
+  .clip-content-editable { transition: none !important; }
 }
