@@ -28,17 +28,25 @@
 {#snippet sidebarContent(selectHandler)}
   {#if visibleClips.length > 0}
     <div id="sidebar-list" class="flex-1 overflow-y-auto p-3 space-y-1 min-h-0">
-      {#each visibleClips as clip (clip.id)}
-        <SidebarItem
-          {clip}
-          selected={clip.id === clipsState.selectedId}
-          onSelect={selectHandler}
-        />
+      {#each visibleClips as clip, i (clip.id)}
+        <div class="sidebar-enter" style="animation-delay: {Math.min(i * 30, 300)}ms">
+          <SidebarItem
+            {clip}
+            selected={clip.id === clipsState.selectedId}
+            onSelect={selectHandler}
+          />
+        </div>
       {/each}
     </div>
   {:else}
     <div id="sidebar-list" class="hidden"></div>
-    <div id="sidebar-empty" class="flex-1 flex items-center justify-center p-6 text-center">
+    <div id="sidebar-empty" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+      <svg viewBox="0 0 48 48" width="36" height="36" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-nb-muted/30 mb-3">
+        <rect x="8" y="10" width="32" height="28" rx="3" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="14" y1="18" x2="28" y2="18" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+        <line x1="14" y1="23" x2="24" y2="23" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+        <line x1="14" y1="28" x2="20" y2="28" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+      </svg>
       <p class="text-xs text-nb-muted leading-relaxed">
         No clips yet.<br/>
         Press <kbd class="px-1 py-0.5 bg-nb-bg border border-white/10 rounded font-mono text-[10px]">⌘V</kbd> to paste.
@@ -51,12 +59,14 @@
       <span>Storage</span>
       <span id="storage-pct">{storagePct.toFixed(0)}%</span>
     </div>
-    <div class="h-0.5 w-full bg-white/5 rounded-full overflow-hidden">
+    <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
       <div
         id="storage-bar"
-        class="h-full rounded-full"
+        class="h-full rounded-full {storagePct > 80 ? 'storage-bar-warning' : ''}"
         style:width={storageBar}
-        style:background-color={storagePct > 80 ? '#f59e0b' : '#c5b358'}
+        style:background={storagePct > 80
+          ? 'linear-gradient(90deg, #f59e0b, #c5b358)'
+          : 'linear-gradient(90deg, #c5b358, rgba(197,179,88,0.4))'}
       ></div>
     </div>
     <p id="storage-text" class="text-[9px] text-white/20 mt-1.5 tracking-wide">{storageText}</p>

@@ -12,12 +12,20 @@
   // Capture initial prop value (user can toggle; we don't want full reactivity)
   const isInitiallyMarkdown = language === 'markdown';
   let renderMarkdown = $state(isInitiallyMarkdown);
+  let renderFade     = $state(false);
 
   const renderedHtml = $derived(
     renderMarkdown
       ? DOMPurify.sanitize(marked.parse(rawText || ''))
       : ''
   );
+
+  function toggleMarkdown() {
+    renderFade = false;
+    renderMarkdown = !renderMarkdown;
+    expanded = false;
+    requestAnimationFrame(() => { renderFade = true; });
+  }
 </script>
 
 <div class="bg-nb-card border border-white/5 rounded-xl overflow-hidden">
@@ -28,11 +36,16 @@
     </div>
     <div class="flex items-center gap-3">
       {#if language === 'markdown'}
-        <button
-          class="text-[10px] uppercase tracking-widest font-bold transition-colors {renderMarkdown ? 'text-nb-accent' : 'text-nb-muted hover:text-nb-text'}"
-          onclick={() => { renderMarkdown = !renderMarkdown; expanded = false; }}
-          title={renderMarkdown ? 'Show raw text' : 'Render as Markdown'}
-        >{renderMarkdown ? 'Raw' : 'Render'}</button>
+        <div class="flex items-center gap-0.5 bg-white/5 rounded-full p-0.5">
+          <button
+            class="toggle-pill {renderMarkdown ? 'toggle-active' : ''}"
+            onclick={toggleMarkdown}
+          >Render</button>
+          <button
+            class="toggle-pill {!renderMarkdown ? 'toggle-active' : ''}"
+            onclick={toggleMarkdown}
+          >Raw</button>
+        </div>
       {/if}
       <span class="text-[10px] text-nb-muted">{lines.length} lines</span>
     </div>
@@ -40,7 +53,7 @@
   <div class="p-6">
     {#if renderMarkdown}
       <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-      <div class="markdown-body" onclick={(e) => { if (e.target.tagName === 'A') e.target.setAttribute('target', '_blank'); }}>
+      <div class="markdown-body {renderFade ? 'opacity-100' : 'opacity-0'} transition-opacity duration-150" onclick={(e) => { if (e.target.tagName === 'A') e.target.setAttribute('target', '_blank'); }}>
         {@html renderedHtml}
       </div>
     {:else}
@@ -49,9 +62,12 @@
       </p>
       {#if isLong}
         <button
-          class="mt-4 text-xs text-nb-accent hover:underline"
+          class="mt-4 text-xs text-nb-accent hover:underline flex items-center gap-1"
           onclick={() => expanded = !expanded}
         >
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" class="transition-transform duration-200 {expanded ? 'rotate-180' : ''}">
+            <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
           {expanded ? 'Show less' : `+ ${lines.length - 30} more lines`}
         </button>
       {/if}
@@ -63,7 +79,7 @@
   .markdown-body { color: var(--color-nb-text, #e0e0e0); line-height: 1.6; }
   .markdown-body :global(h1) { font-size: 1.4em; font-weight: 700; margin: 0.5em 0 0.25em; }
   .markdown-body :global(h2) { font-size: 1.2em; font-weight: 600; margin: 0.5em 0 0.25em; }
-  .markdown-body :global(h3) { font-size: 1.1em; font-weight: 600; margin: 0.5em 0 0.25em; }
+  .markdown-body :global(h3) { font-size: 1.1em; font-weight: 600; margin: 0.5em 0 0.2em; }
   .markdown-body :global(h4), .markdown-body :global(h5), .markdown-body :global(h6) { font-weight: 600; margin: 0.4em 0 0.2em; }
   .markdown-body :global(p) { margin: 0.4em 0; }
   .markdown-body :global(ul), .markdown-body :global(ol) { padding-left: 1.5em; margin: 0.4em 0; }
@@ -72,7 +88,7 @@
   .markdown-body :global(pre) { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 0.75em 1em; overflow-x: auto; margin: 0.5em 0; }
   .markdown-body :global(pre code) { background: none; padding: 0; font-size: 0.875em; }
   .markdown-body :global(blockquote) { border-left: 3px solid rgba(255,255,255,0.2); padding-left: 0.75em; margin: 0.5em 0; opacity: 0.75; }
-  .markdown-body :global(a) { color: #60a5fa; text-decoration: underline; }
+  .markdown-body :global(a) { color: #60a5fa; decoration: underline; }
   .markdown-body :global(hr) { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 0.75em 0; }
   .markdown-body :global(table) { border-collapse: collapse; width: 100%; margin: 0.5em 0; font-size: 0.875em; }
   .markdown-body :global(th), .markdown-body :global(td) { border: 1px solid rgba(255,255,255,0.1); padding: 0.4em 0.75em; text-align: left; }

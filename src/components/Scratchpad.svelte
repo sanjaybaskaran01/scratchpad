@@ -79,19 +79,34 @@
   }
 </script>
 
-<div id="scratchpad-card" class="bg-nb-card border border-nb-accent/20 rounded-xl overflow-hidden scratchpad-enter">
+<div id="scratchpad-card" class="bg-nb-card rounded-xl overflow-hidden scratchpad-enter relative" style="border-left: 2px solid #c5b358;">
   <div class="px-4 py-2.5 border-b border-white/5 flex items-center justify-between">
     <div class="flex items-center gap-2.5">
-      <span class="material-symbols-outlined text-nb-accent" style="font-size:14px">edit_note</span>
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0">
+        <rect x="2" y="2" width="12" height="12" rx="2" stroke="#c5b358" stroke-width="1.3"/>
+        <line x1="5" y1="5.5" x2="11" y2="5.5" stroke="#c5b358" stroke-width="0.9" stroke-linecap="round"/>
+        <line x1="5" y1="8" x2="9" y2="8" stroke="#c5b358" stroke-width="0.9" stroke-linecap="round"/>
+        <line x1="5" y1="10.5" x2="7" y2="10.5" stroke="#c5b358" stroke-width="0.9" stroke-linecap="round"/>
+      </svg>
       <span class="text-[10px] font-bold uppercase tracking-widest text-nb-accent">Scratchpad</span>
-      <span
-        class="text-[10px] text-nb-muted transition-opacity duration-300"
-        class:opacity-0={!statusVisible}
-      >{status}</span>
+      {#if statusVisible}
+        <span class="text-[10px] text-nb-muted transition-opacity duration-300">
+          {#if status === 'Saving…'}
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline-block mr-0.5 spin-arc" style="vertical-align: -1px;">
+              <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" stroke-dasharray="12 28" stroke-linecap="round"/>
+            </svg>
+          {:else}
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" class="inline-block mr-0.5" style="vertical-align: -1px; color: #c5b358">
+              <path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="check-draw"/>
+            </svg>
+          {/if}
+          {status}
+        </span>
+      {/if}
     </div>
     <div class="flex items-center gap-2 md:gap-3">
       <button
-        class="text-[10px] md:text-[11px] text-nb-muted hover:text-nb-accent transition-colors"
+        class="px-3 py-1 rounded text-[10px] md:text-[11px] bg-nb-accent/15 text-nb-accent hover:bg-nb-accent/25 transition-colors"
         onclick={commit}
       >Save as clip  ↵</button>
       <button

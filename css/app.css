@@ -14,14 +14,48 @@
 /* ── Pointer cursor (Tailwind v4 dropped Preflight rule) ─────────────────── */
 button, [role="button"], a[href], summary { cursor: pointer; }
 
+/* ── Global focus-visible ───────────────────────────────────────────────── */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(197,179,88,0.35);
+  border-radius: 4px;
+}
+
+/* ── Skip link (accessibility) ──────────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: var(--color-nb-accent);
+  color: #111;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-radius: 0 0 8px 8px;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
+}
+
 /* ── Filter tab active state ─────────────────────────────────────────────── */
 :root { --nb-accent: #c5b358; }
 
-.filter-tab { color: #a1a19f; }
-.filter-tab.active-tab {
+.filter-tab {
+  color: #a1a19f;
+  border-radius: 9999px;
+  padding: 0.25rem 0.625rem;
+  transition: color 0.15s, background 0.15s;
+}
+.filter-tab:hover {
   color: #d4d4d2;
-  border-bottom: 1px solid var(--nb-accent);
-  padding-bottom: calc(0.25rem - 1px);
+}
+.filter-tab.active-tab {
+  color: #c5b358;
+  background: rgba(197,179,88,0.1);
+  border-bottom: none;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
@@ -45,18 +79,86 @@ button, [role="button"], a[href], summary { cursor: pointer; }
   border-radius: 6px;
   color: #a1a19f;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.12s;
 }
 .icon-action:hover {
   color: #d4d4d2;
   border-color: rgba(255,255,255,0.15);
   background: rgba(255,255,255,0.04);
+  transform: translateY(-1px);
+}
+.icon-action:active {
+  transform: translateY(0) scale(0.95);
 }
 @media (max-width: 639px) {
   .icon-action { width: 32px; height: 32px; }
 }
 @media (min-width: 640px) and (max-width: 767px) {
   .icon-action { width: 34px; height: 34px; }
+}
+
+/* ── Sidebar item ─────────────────────────────────────────────────────────── */
+.sidebar-item {
+  position: relative;
+  overflow: hidden;
+  transition: background 0.15s, transform 0.12s, border-color 0.15s;
+}
+.sidebar-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0;
+  background: #c5b358;
+  border-radius: 2px;
+  transition: width 0.15s ease;
+}
+.sidebar-item.sidebar-selected::before {
+  width: 2px;
+}
+.sidebar-item:hover:not(.sidebar-selected) {
+  transform: translateX(2px);
+}
+
+/* ── Clip card actions ───────────────────────────────────────────────────── */
+.clip-actions {
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+.detail-card:hover .clip-actions,
+.detail-card:focus-within .clip-actions {
+  opacity: 1;
+}
+@media (max-width: 767px) {
+  .clip-actions { opacity: 1; }
+}
+
+/* ── Shimmer gradient for primary buttons ────────────────────────────────── */
+.btn-shimmer {
+  background-image: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgba(197,179,88,0.12) 50%,
+    transparent 75%
+  );
+  background-size: 250% 100%;
+  background-position: right center;
+  transition: background-position 0.4s ease, background-color 0.15s, border-color 0.15s, transform 0.12s;
+}
+.btn-shimmer:hover {
+  background-position: left center;
+  transform: translateY(-1px);
+}
+.btn-shimmer:active {
+  transform: translateY(0);
+}
+
+/* ── Search focus glow ───────────────────────────────────────────────────── */
+.search-glow {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, width 0.2s ease;
+}
+.search-glow:focus-within,
+.search-glow:focus {
+  box-shadow: 0 0 0 3px rgba(197,179,88,0.1);
 }
 
 /* ── Scrollbar global ────────────────────────────────────────────────────── */
@@ -70,15 +172,15 @@ button, [role="button"], a[href], summary { cursor: pointer; }
 
 /* ── 1. Clip card entrance / exit ────────────────────────────────────────── */
 @keyframes clip-enter-kf {
-  from { opacity: 0; transform: translateY(-10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes clip-exit-kf {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(16px); }
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
 }
-.clip-enter { animation: clip-enter-kf 220ms ease-out both; }
-.clip-exit  { animation: clip-exit-kf  180ms ease-in  both; }
+.clip-enter { animation: clip-enter-kf 200ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.clip-exit  { animation: clip-exit-kf  180ms cubic-bezier(0.4, 0, 1, 1) both; }
 
 /* ── 2. Sidebar item entrance ────────────────────────────────────────────── */
 @keyframes sidebar-enter-kf {
@@ -87,19 +189,33 @@ button, [role="button"], a[href], summary { cursor: pointer; }
 }
 .sidebar-enter { animation: sidebar-enter-kf 180ms ease-out both; }
 
-/* ── 3. Paste zone icon breathing pulse ──────────────────────────────────── */
-@keyframes paste-pulse-kf {
-  0%, 100% { transform: scale(1); }
-  50%       { transform: scale(1.04); }
+/* ── 3. Paste zone ────────────────────────────────────────────────────────── */
+.paste-zone-hover {
+  transition: transform 0.2s ease, border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
-.paste-zone-pulse { animation: paste-pulse-kf 3s ease-in-out infinite; }
+.paste-zone-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
 
-/* ── 5. Toast vertical slide ─────────────────────────────────────────────── */
-.toast {
-  --tw-translate-y: 0.5rem;
-  transition: opacity 200ms ease, transform 200ms ease;
+/* ── 5. Toast ─────────────────────────────────────────────────────────────── */
+@keyframes toast-in-kf {
+  from { opacity: 0; transform: translateY(1rem); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.toast.show { --tw-translate-y: 0; }
+@keyframes toast-out-kf {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(0.5rem); }
+}
+.toast {
+  animation: toast-in-kf 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(38,38,38,0.88);
+}
+.toast.toast-exit {
+  animation: toast-out-kf 0.15s ease-in both;
+}
 
 /* ── 6. Modal image scale-in ─────────────────────────────────────────────── */
 #img-modal img {
@@ -112,22 +228,44 @@ button, [role="button"], a[href], summary { cursor: pointer; }
 /* ── 7. Copy button tactile feedback ─────────────────────────────────────── */
 @keyframes btn-copy-pop-kf {
   0%   { transform: scale(1); }
-  50%  { transform: scale(1.08); }
+  50%  { transform: scale(1.1); }
   100% { transform: scale(1); }
 }
-.btn-copy.copied-anim { animation: btn-copy-pop-kf 150ms ease-out both; }
+.btn-copy.copied-anim { animation: btn-copy-pop-kf 200ms ease-out both; }
 
 /* ── 8. Scratchpad spring entrance ───────────────────────────────────────── */
 @keyframes scratchpad-enter-kf {
-  from { opacity: 0; transform: translateY(-12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.scratchpad-enter { animation: scratchpad-enter-kf 200ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.scratchpad-enter { animation: scratchpad-enter-kf 250ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── Scratchpad editing border gradient ───────────────────────────────────── */
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes border-spin {
+  to { --border-angle: 360deg; }
+}
+.scratchpad-edit-border {
+  background: linear-gradient(var(--border-angle), rgba(197,179,88,0.4), rgba(197,179,88,0.08), rgba(197,179,88,0.4)) border-box;
+  border: 1.5px solid transparent;
+  animation: border-spin 4s linear infinite;
+}
 
 /* ── 9. Storage bar ──────────────────────────────────────────────────────── */
 #storage-bar {
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1),
               background-color 0.4s ease;
+}
+@keyframes storage-pulse-kf {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+.storage-bar-warning {
+  animation: storage-pulse-kf 2s ease-in-out infinite;
 }
 
 /* ── 10. Image lazy-load fade ────────────────────────────────────────────── */
@@ -138,6 +276,9 @@ button, [role="button"], a[href], summary { cursor: pointer; }
 .img-fade-in { animation: img-fade-in-kf 300ms ease-out both; }
 
 /* ── 11. Detail card focus ring ──────────────────────────────────────────── */
+.detail-card {
+  contain: layout style paint;
+}
 .detail-card:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(197, 179, 88, 0.3);
@@ -156,18 +297,136 @@ button, [role="button"], a[href], summary { cursor: pointer; }
 /* ── 12. Clip highlight flash ────────────────────────────────────────────── */
 @keyframes clip-flash {
   0%   { box-shadow: 0 0 0 0 rgba(197,179,88,0.5); transform: scale(1); }
-  30%  { box-shadow: 0 0 0 6px rgba(197,179,88,0.15); transform: scale(1.01); }
+  30%  { box-shadow: 0 0 0 6px rgba(197,179,88,0.15); transform: scale(1.008); }
   100% { box-shadow: 0 0 0 0 rgba(197,179,88,0); transform: scale(1); }
 }
-.clip-highlight { animation: clip-flash 0.7s ease; border-radius: 12px; }
+.clip-highlight { animation: clip-flash 0.6s ease; border-radius: 12px; }
 
 /* ── 13. Shortcut overlay panel scale ────────────────────────────────────── */
-.shortcut-panel { transform: scale(0.96); transition: transform 150ms ease-out; }
-#shortcut-overlay:not(.opacity-0) .shortcut-panel { transform: scale(1); }
+@keyframes modal-enter-kf {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.shortcut-panel {
+  animation: modal-enter-kf 150ms ease-out both;
+  transform-origin: center;
+}
+
+/* ── Editing glow pulse ───────────────────────────────────────────────────── */
+@keyframes edit-glow-kf {
+  0%, 100% { box-shadow: 0 0 8px rgba(197,179,88,0.1); }
+  50%      { box-shadow: 0 0 12px rgba(197,179,88,0.2); }
+}
+.editing-glow {
+  animation: edit-glow-kf 2.5s ease-in-out infinite;
+}
+
+/* ── P2P pairing code stagger ─────────────────────────────────────────────── */
+@keyframes code-char-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.p2p-code-char {
+  display: inline-block;
+  animation: code-char-in 0.2s ease-out both;
+}
+
+/* ── SVG draw-on animation ───────────────────────────────────────────────── */
+@keyframes draw-on {
+  from { stroke-dashoffset: var(--draw-length, 100); }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* ── Logo pen draw ────────────────────────────────────────────────────────── */
+.logo-mark {
+  transition: transform 0.2s ease;
+}
+.logo-mark:hover {
+  transform: rotate(-6deg);
+}
+
+/* ── SVG spinning arc ─────────────────────────────────────────────────────── */
+@keyframes spin-arc {
+  to { transform: rotate(360deg); }
+}
+.spin-arc {
+  animation: spin-arc 1s linear infinite;
+}
+
+/* ── SVG checkmark draw-on ───────────────────────────────────────────────── */
+@keyframes check-draw {
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0; }
+}
+.check-draw {
+  stroke-dasharray: 24;
+  animation: check-draw 0.2s ease-out both;
+}
+
+/* ── Toast progress bar ───────────────────────────────────────────────────── */
+@keyframes toast-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+.toast-progress {
+  animation: toast-progress 3s linear both;
+}
+
+/* ── Pinned shimmer ────────────────────────────────────────────────────────── */
+@keyframes pin-shimmer {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+.pin-shimmer {
+  animation: pin-shimmer 2s ease-in-out infinite;
+}
 
 /* ── highlight.js code block ─────────────────────────────────────────────── */
 .hljs { background: transparent !important; }
 pre.hljs-pre { margin: 0; background: transparent; }
+
+/* ── Code block line numbers ─────────────────────────────────────────────── */
+.code-line-nums {
+  counter-reset: line;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+.code-line-nums > span {
+  counter-increment: line;
+  display: block;
+}
+.code-line-nums > span::before {
+  content: counter(line);
+  display: inline-block;
+  width: 2.5em;
+  text-align: right;
+  padding-right: 1em;
+  color: rgba(255,255,255,0.08);
+  font-size: 0.75em;
+}
+
+/* ── Toggle pill buttons ──────────────────────────────────────────────────── */
+.toggle-pill {
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: color 0.15s, background 0.15s;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #a1a19f;
+}
+.toggle-pill:hover {
+  color: #d4d4d2;
+}
+.toggle-pill.toggle-active {
+  background: rgba(197,179,88,0.12);
+  color: #c5b358;
+}
 
 /* ── Safe-area utilities ─────────────────────────────────────────────────── */
 .safe-top    { padding-top:    env(safe-area-inset-top, 0px); }
@@ -181,6 +440,8 @@ pre.hljs-pre { margin: 0; background: transparent; }
   inset: 0;
   z-index: 40;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   opacity: 1;
   transition: opacity 200ms ease;
 }
@@ -199,7 +460,7 @@ pre.hljs-pre { margin: 0; background: transparent; }
   max-width: 85vw;
   background: var(--color-nb-side);
   transform: translateX(0);
-  transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -216,14 +477,27 @@ pre.hljs-pre { margin: 0; background: transparent; }
 /* ── Reduced-motion ──────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .clip-enter, .clip-exit, .sidebar-enter, .paste-zone-pulse,
-  .scratchpad-enter, .img-fade-in, .btn-copy.copied-anim, .clip-highlight {
+  .scratchpad-enter, .img-fade-in, .btn-copy.copied-anim, .clip-highlight,
+  .spin-arc, .check-draw, .pin-shimmer, .editing-glow,
+  .toast, .p2p-code-char {
     animation: none !important;
   }
+  .toast.toast-exit { animation: none !important; }
   .toast, .toast.show { transform: translateY(0) !important; transition: opacity 200ms !important; }
   #img-modal img, .modal-visible img { transform: scale(1) !important; opacity: 1 !important; transition: opacity 200ms ease-out !important; }
-  .shortcut-panel, #shortcut-overlay:not(.opacity-0) .shortcut-panel { transform: scale(1) !important; transition: none !important; }
+  .shortcut-panel { animation: none !important; transform: scale(1) !important; }
   #storage-bar { transition: none !important; }
+  .storage-bar-warning { animation: none !important; }
   .detail-card:focus { transition: none !important; }
   .drawer-backdrop, .drawer-panel { transition: none !important; }
   .clip-content-editable { transition: none !important; }
+  .icon-action { transition: color 0.15s, border-color 0.15s, background 0.15s !important; }
+  .sidebar-item { transition: background 0.15s, border-color 0.15s !important; }
+  .sidebar-item::before { transition: none !important; }
+  .scratchpad-edit-border { animation: none !important; }
+  .logo-mark:hover { transform: none !important; }
+  .paste-zone-hover:hover { transform: none !important; }
+  .btn-shimmer:hover { transform: none !important; background-position: right center !important; }
+  .toggle-pill { transition: none !important; }
+  .filter-tab { transition: none !important; }
 }

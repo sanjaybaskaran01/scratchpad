@@ -804,28 +804,28 @@
 
   <!-- Footer -->
   <footer class="h-10 border-t border-white/5 bg-nb-side px-6 hidden md:flex items-center justify-between text-[10px] text-nb-muted shrink-0 safe-bottom">
-    <div class="flex items-center gap-6">
-      <div class="flex items-center gap-2">
-        <kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded font-mono">⌘V</kbd>
-        <span class="uppercase tracking-wider">Paste</span>
+    <div class="flex items-center gap-5">
+      <div class="flex items-center gap-1.5">
+        <kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">⌘V</kbd>
+        <span class="uppercase tracking-wider opacity-60">Paste</span>
       </div>
-      <div class="flex items-center gap-2">
-        <kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded font-mono">j / k</kbd>
-        <span class="uppercase tracking-wider">Navigate</span>
+      <div class="flex items-center gap-1.5">
+        <kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">j / k</kbd>
+        <span class="uppercase tracking-wider opacity-60">Navigate</span>
       </div>
-      <div class="flex items-center gap-2">
-        <kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded font-mono">p</kbd>
-        <span class="uppercase tracking-wider">Pin</span>
+      <div class="flex items-center gap-1.5">
+        <kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">p</kbd>
+        <span class="uppercase tracking-wider opacity-60">Pin</span>
       </div>
-      <div class="flex items-center gap-2">
-        <kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded font-mono">?</kbd>
-        <span class="uppercase tracking-wider">Help</span>
+      <div class="flex items-center gap-1.5">
+        <kbd class="px-1.5 py-0.5 bg-nb-bg border border-white/10 rounded font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">?</kbd>
+        <span class="uppercase tracking-wider opacity-60">Help</span>
       </div>
     </div>
     <div class="flex items-center gap-4">
       {#if deferredInstallPrompt}
         <button
-          class="flex items-center gap-1.5 px-2.5 py-1 bg-nb-accent/10 border border-nb-accent/30 rounded text-[10px] text-nb-accent uppercase tracking-wider hover:bg-nb-accent/20 transition-colors"
+          class="btn-shimmer flex items-center gap-1.5 px-2.5 py-1 bg-nb-accent/10 border border-nb-accent/30 rounded text-[10px] text-nb-accent uppercase tracking-wider"
           onclick={handleInstallApp}
           title="Install Scratchpad as a desktop app"
         >
@@ -833,7 +833,7 @@
           Install app
         </button>
       {/if}
-      <div class="italic opacity-40">Local browser storage only</div>
+      <div class="italic opacity-30">Local browser storage only</div>
     </div>
   </footer>
 

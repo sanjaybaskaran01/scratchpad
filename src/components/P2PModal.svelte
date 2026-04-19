@@ -11,7 +11,7 @@
 
   let { onReceiveClip } = $props();
 
-  // ── Local state ───────────────────────────────────────────────────────────────
+  // ── Local state ────────────────────────────────────────────────────────────────
   const P2P_TIMEOUT_SECONDS = 120;
 
   let senderStatus   = $state('idle');  // idle | waiting-peer | verifying | sending | done | error
@@ -25,6 +25,10 @@
     uiState.p2pShare.code
       ? uiState.p2pShare.code.slice(0, 4) + ' · ' + uiState.p2pShare.code.slice(4)
       : ''
+  );
+
+  const codeChars = $derived(
+    displayCode ? displayCode.split('') : []
   );
 
   function close() {
@@ -337,17 +341,16 @@
   }[receiverStatus] ?? '');
 </script>
 
+{#if uiState.p2pShare.open}
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
 <div
-  class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 transition-opacity duration-150"
-  class:opacity-0={!uiState.p2pShare.open}
-  class:pointer-events-none={!uiState.p2pShare.open}
+  class="fixed inset-0 bg-black/60 backdrop-blur-[4px] flex items-center justify-center z-50 transition-opacity duration-150"
   onclick={(e) => { if (e.target === e.currentTarget) close(); }}
   role="dialog"
   aria-modal="true"
   aria-label="P2P clip sharing"
 >
-  <div class="bg-nb-card border border-white/10 rounded-xl shadow-2xl w-full max-w-sm p-6">
+  <div class="bg-nb-card border border-white/10 rounded-xl shadow-2xl w-full max-w-sm p-6" style="box-shadow: 0 0 0 1px rgba(197,179,88,0.06), 0 24px 60px rgba(0,0,0,0.5); animation: modal-enter-kf 150ms ease-out both;">
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-5">
@@ -367,14 +370,21 @@
 
       {#if senderStatus === 'done'}
         <div class="text-center py-6">
-          <span class="material-symbols-outlined text-nb-accent block mb-2" style="font-size:40px">check_circle</span>
+          <svg viewBox="0 0 40 40" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg" class="mx-auto mb-2">
+            <circle cx="20" cy="20" r="18" stroke="#c5b358" stroke-width="1.5" class="opacity-30"/>
+            <path d="M12 20.5L17.5 26L28 15" stroke="#c5b358" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-draw"/>
+          </svg>
           <div class="text-sm text-nb-text font-medium">Sent!</div>
           <div class="text-xs text-nb-muted mt-1">Clip delivered securely</div>
         </div>
 
       {:else if senderStatus === 'error'}
         <div class="text-center py-6">
-          <span class="material-symbols-outlined text-red-400 block mb-2" style="font-size:40px">error</span>
+          <svg viewBox="0 0 40 40" width="36" height="36" fill="none" xmlns="http://www.w3.org/2000/svg" class="mx-auto mb-2">
+            <circle cx="20" cy="20" r="18" stroke="#f87171" stroke-width="1.5" class="opacity-40"/>
+            <line x1="14" y1="14" x2="26" y2="26" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
+            <line x1="26" y1="14" x2="14" y2="26" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
+          </svg>
           <div class="text-sm text-red-400">{errorMsg}</div>
         </div>
 
@@ -382,8 +392,10 @@
         <!-- Code display -->
         <div class="mb-5">
           <div class="text-[10px] uppercase tracking-widest text-nb-muted mb-2">Pairing code</div>
-          <div class="bg-nb-bg border border-white/10 rounded-lg py-5 text-center font-mono text-2xl tracking-[0.25em] text-nb-text select-all cursor-text">
-            {displayCode}
+          <div class="bg-nb-bg border border-white/10 rounded-lg py-5 text-center font-mono text-2xl tracking-[0.25em] text-nb-text select-all cursor-text" aria-label="Pairing code: {displayCode}">
+            {#each codeChars as char, i}
+              <span class="p2p-code-char" style="animation-delay: {i * 40}ms">{char}</span>
+            {/each}
           </div>
           <div class="text-[11px] text-nb-muted text-center mt-2 leading-relaxed">
             Receiver opens app &rarr; Receive &rarr; enters code above
@@ -402,7 +414,9 @@
           <div class="flex items-center justify-between text-xs mb-2">
             <span class="text-nb-muted flex items-center gap-1.5">
               {#if senderStatus === 'waiting-peer'}
-                <span class="inline-block w-1.5 h-1.5 rounded-full bg-nb-accent animate-pulse"></span>
+                <svg viewBox="0 0 16 16" width="10" height="10" fill="none" xmlns="http://www.w3.org/2000/svg" class="spin-arc text-nb-accent">
+                  <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" stroke-dasharray="9 28" stroke-linecap="round"/>
+                </svg>
               {/if}
               {senderMsg}
             </span>
@@ -411,14 +425,15 @@
             {/if}
           </div>
           {#if senderStatus === 'waiting-peer'}
-            <div class="h-0.5 bg-nb-bg rounded-full overflow-hidden">
+            <div class="h-1 bg-nb-bg rounded-full overflow-hidden">
               <div
-                class="h-full bg-nb-accent/50 rounded-full transition-all duration-1000"
-                style="width: {(secondsLeft / P2P_TIMEOUT_SECONDS) * 100}%"
+                class="h-full rounded-full transition-all duration-1000"
+                style:width="{(secondsLeft / P2P_TIMEOUT_SECONDS) * 100}%"
+                style:background="linear-gradient(90deg, #c5b358, rgba(197,179,88,0.4))"
               ></div>
             </div>
           {:else if senderStatus === 'verifying' || senderStatus === 'sending'}
-            <div class="h-0.5 bg-nb-accent/50 rounded-full animate-pulse"></div>
+            <div class="h-1 bg-nb-accent/50 rounded-full animate-pulse"></div>
           {/if}
         </div>
       {/if}
@@ -435,14 +450,21 @@
 
       {#if receiverStatus === 'done'}
         <div class="text-center py-6">
-          <span class="material-symbols-outlined text-nb-accent block mb-2" style="font-size:40px">check_circle</span>
+          <svg viewBox="0 0 40 40" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg" class="mx-auto mb-2">
+            <circle cx="20" cy="20" r="18" stroke="#c5b358" stroke-width="1.5" class="opacity-30"/>
+            <path d="M12 20.5L17.5 26L28 15" stroke="#c5b358" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-draw"/>
+          </svg>
           <div class="text-sm text-nb-text font-medium">Clip received!</div>
           <div class="text-xs text-nb-muted mt-1">Added to your feed</div>
         </div>
 
       {:else if receiverStatus === 'error'}
         <div class="mb-4 text-center py-4">
-          <span class="material-symbols-outlined text-red-400 block mb-2" style="font-size:36px">error</span>
+          <svg viewBox="0 0 40 40" width="36" height="36" fill="none" xmlns="http://www.w3.org/2000/svg" class="mx-auto mb-2">
+            <circle cx="20" cy="20" r="18" stroke="#f87171" stroke-width="1.5" class="opacity-40"/>
+            <line x1="14" y1="14" x2="26" y2="26" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
+            <line x1="26" y1="14" x2="14" y2="26" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
+          </svg>
           <div class="text-sm text-red-400 mb-3">{errorMsg}</div>
           <!-- Allow retry -->
           <div class="flex gap-2">
@@ -488,9 +510,11 @@
       {:else}
         <!-- connecting | ready | receiving -->
         <div class="mb-5 py-4">
-          <div class="h-0.5 bg-nb-accent/50 rounded-full animate-pulse mb-4"></div>
+          <div class="h-1 bg-nb-accent/50 rounded-full animate-pulse mb-4"></div>
           <div class="text-xs text-nb-muted text-center flex items-center justify-center gap-2">
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-nb-accent animate-pulse"></span>
+            <svg viewBox="0 0 16 16" width="10" height="10" fill="none" xmlns="http://www.w3.org/2000/svg" class="spin-arc text-nb-accent">
+              <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" stroke-dasharray="9 28" stroke-linecap="round"/>
+            </svg>
             {receiverMsg}
           </div>
         </div>
@@ -511,3 +535,4 @@
     {/if}
   </div>
 </div>
+{/if}

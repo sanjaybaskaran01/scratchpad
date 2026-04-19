@@ -30,12 +30,8 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <div
-  class="sidebar-item p-3 rounded-lg cursor-pointer transition-colors duration-150 border"
-  class:bg-nb-card={selected}
-  class:border-nb-accent={false}
-  class:border-transparent={!selected}
-  class:hover:bg-white={!selected}
-  style={selected ? 'border-color: rgba(197,179,88,0.2)' : 'border-color: transparent'}
+  class="sidebar-item p-3 rounded-lg cursor-pointer border {selected ? 'sidebar-selected bg-nb-card' : 'border-transparent hover:bg-white/[0.03]'}"
+  style={selected ? 'border-color: rgba(197,179,88,0.15)' : ''}
   onclick={() => onSelect(clip.id)}
 >
   <div class="flex items-center justify-between mb-1">
@@ -43,7 +39,7 @@
       {typeLabel}
     </span>
     {#if clip.pinned}
-      <span class="material-symbols-outlined" style="font-size:12px;font-variation-settings:'FILL' 1;color:{selected ? '#c5b358' : '#a1a19f'}">push_pin</span>
+      <span class="material-symbols-outlined pin-shimmer" style="font-size:12px;font-variation-settings:'FILL' 1;color:{selected ? '#c5b358' : '#a1a19f'}">push_pin</span>
     {/if}
   </div>
   <p class="text-xs font-medium truncate mb-1 text-nb-text">{title}</p>

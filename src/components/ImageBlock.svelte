@@ -54,12 +54,14 @@
   <div class="p-4 bg-black/20 flex justify-center">
     {#if objectUrl}
       <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
-      <img
-        src={objectUrl}
-        alt="pasted image"
-        class="clip-img-thumb max-h-80 object-contain rounded-lg shadow-lg cursor-zoom-in img-fade-in"
-        onclick={openModal}
-      />
+<img
+          src={objectUrl}
+          alt="pasted image"
+          class="clip-img-thumb max-h-80 object-contain rounded-lg shadow-lg cursor-zoom-in img-fade-in"
+          onclick={openModal}
+          loading="lazy"
+          decoding="async"
+        />
     {:else}
       <div class="h-40 w-full flex items-center justify-center text-nb-muted/40 text-xs">Loading…</div>
     {/if}

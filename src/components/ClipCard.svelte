@@ -52,9 +52,19 @@
   let editValue  = $state('');
   let editTaEl   = $state(null);
 
+  const AUTOSAVE_DELAY = 2000;
+  let autosaveTimer    = null;
+  let autosaveStatus   = $state('');
+  let autosaveVisible  = $state(false);
+  let lastAutosavedText = '';
+  let autosaveCount     = 0;
+  let statusHideTimer  = null;
+
   function startEdit() {
     editValue = rawText || '';
     editing   = true;
+    lastAutosavedText = editValue;
+    autosaveCount = 0;
   }
 
   function handleContentClick(e) {
@@ -69,6 +79,8 @@
     if (clipsState.editingClipId === clip.id && !editing) {
       editValue = untrack(() => rawText || '');
       editing   = true;
+      lastAutosavedText = editValue;
+      autosaveCount = 0;
       clipsState.editingClipId = null;
     }
   });
@@ -83,11 +95,44 @@
     }
   });
 
+  // Auto-resize textarea to fit content
+  function resizeTextarea() {
+    if (!editTaEl) return;
+    editTaEl.style.height = 'auto';
+    editTaEl.style.height = editTaEl.scrollHeight + 'px';
+  }
+
+  $effect(resizeTextarea);
+
+  // Debounced auto-save
+  function scheduleAutosave() {
+    clearTimeout(autosaveTimer);
+    clearTimeout(statusHideTimer);
+    autosaveStatus  = 'Saving…';
+    autosaveVisible = true;
+    autosaveTimer = setTimeout(async () => {
+      if (onEdit) await onEdit(clip, editValue);
+      lastAutosavedText = editValue;
+      autosaveCount++;
+      autosaveStatus = 'Saved';
+      statusHideTimer = setTimeout(() => { autosaveVisible = false; }, 1200);
+    }, AUTOSAVE_DELAY);
+  }
+
   function cancelEdit() {
+    clearTimeout(autosaveTimer);
+    clearTimeout(statusHideTimer);
+    const isDirty = editValue !== lastAutosavedText;
+    if (isDirty && autosaveCount > 0) {
+      editValue = lastAutosavedText;
+      onEdit(clip, lastAutosavedText);
+    }
     editing = false;
   }
 
   async function saveEdit() {
+    clearTimeout(autosaveTimer);
+    clearTimeout(statusHideTimer);
     if (onEdit) await onEdit(clip, editValue);
     editing = false;
   }
@@ -95,7 +140,12 @@
   function onEditKeyDown(e) {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); return; }
     if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); return; }
-    handleListContinuation(e, editTaEl, () => editValue, v => { editValue = v; });
+    handleListContinuation(e, editTaEl, () => editValue, v => { editValue = v; }, onEditInput);
+  }
+
+  function onEditInput() {
+    resizeTextarea();
+    scheduleAutosave();
   }
 
   // ── Language picker ───────────────────────────────────────────────────────────
@@ -111,6 +161,9 @@
     pickingLang = false;
     if (onChangeLanguage) onChangeLanguage(clip, newLang);
   }
+
+  // ── Copy feedback SVG state ────────────────────────────────────────────────
+  const showCheck = $derived(copied);
 </script>
 
 <div id="clip-detail-{clip.id}" class="detail-card space-y-4" tabindex="0">
@@ -146,13 +199,20 @@
       {/if}
       <p class="text-sm text-nb-muted mt-0.5">{metaLine}</p>
     </div>
-    <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0 pt-0 md:pt-1 overflow-x-auto">
+    <div class="clip-actions flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0 pt-0 md:pt-1 overflow-x-auto">
       <button
         class="btn-copy flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-nb-card border rounded text-xs hover:bg-nb-accent/10 hover:border-nb-accent/30 transition-colors {copied ? 'copied-anim' : ''}"
         style={copied ? 'color: #c5b358; border-color: rgba(197,179,88,0.3)' : 'border-color: rgba(255,255,255,0.1)'}
         onclick={handleCopy}
       >
-        <span class="material-symbols-outlined" style="font-size:14px">{copied ? 'check' : 'content_copy'}</span><span class="hidden md:inline">{copied ? 'Copied!' : 'Copy'}</span>
+        {#if showCheck}
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 8.5L6.5 12L13 4" stroke="#c5b358" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="check-draw"/>
+          </svg>
+        {:else}
+          <span class="material-symbols-outlined" style="font-size:14px">content_copy</span>
+        {/if}
+        <span class="hidden md:inline">{copied ? 'Copied!' : 'Copy'}</span>
       </button>
       {#if clip.type !== 'image'}
         <button
@@ -192,7 +252,7 @@
         onclick={() => onPin(clip)}
       >
         <span
-          class="material-symbols-outlined"
+          class="material-symbols-outlined {clip.pinned ? 'pin-shimmer' : ''}"
           style="font-size:16px;font-variation-settings:'FILL' {clip.pinned ? 1 : 0}"
         >{clip.pinned ? 'push_pin' : 'keep'}</span>
       </button>
@@ -207,28 +267,37 @@
   </div>
 
   {#if editing}
-    <div class="bg-nb-card border border-nb-accent/20 rounded-xl overflow-hidden">
-      <div class="px-4 py-2.5 border-b border-white/5 flex items-center justify-between">
-        <span class="text-[10px] font-bold uppercase tracking-widest text-nb-accent">Editing</span>
+    <div class="scratchpad-edit-border rounded-xl overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-white/5 flex items-center justify-between bg-nb-card editing-glow rounded-t-xl">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-nb-accent">Editing</span>
+          <span
+            class="text-[10px] text-nb-muted transition-opacity duration-300"
+            class:opacity-0={!autosaveVisible}
+          >{autosaveStatus}</span>
+        </div>
         <div class="flex items-center gap-3">
           <button
-            class="text-[11px] text-nb-muted hover:text-nb-accent transition-colors"
+            class="px-3 py-1 rounded text-[11px] bg-nb-accent/15 text-nb-accent hover:bg-nb-accent/25 transition-colors"
             onclick={saveEdit}
           >Save  ⌘↵</button>
           <button
-            class="text-[11px] text-nb-muted hover:text-red-400 transition-colors"
+            class="px-3 py-1 rounded text-[11px] text-nb-muted hover:text-red-400 transition-colors"
             onclick={cancelEdit}
           >Cancel  Esc</button>
         </div>
       </div>
-      <textarea
-        bind:this={editTaEl}
-        bind:value={editValue}
-        onkeydown={onEditKeyDown}
-        class="w-full bg-transparent text-nb-text font-mono text-sm p-4 outline-none resize-none min-h-[200px] leading-relaxed"
-        autocomplete="off"
-        spellcheck="false"
-      ></textarea>
+      <div class="bg-nb-card">
+        <textarea
+          bind:this={editTaEl}
+          bind:value={editValue}
+          onkeydown={onEditKeyDown}
+          oninput={onEditInput}
+          class="w-full bg-transparent text-nb-text font-mono text-sm p-4 outline-none resize-none min-h-[80px] leading-relaxed"
+          autocomplete="off"
+          spellcheck="false"
+        ></textarea>
+      </div>
     </div>
   {:else if clip.type === 'image'}
     <ImageBlock {clip} />

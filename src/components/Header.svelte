@@ -6,6 +6,9 @@
   const isSearching = $derived(clipsState.searchQuery.trim().length > 0);
 </script>
 
+<!-- Skip link for accessibility -->
+<a href="#main-content" class="skip-link">Skip to content</a>
+
 <header class="min-h-14 border-b border-white/8 bg-[rgba(20,20,20,0.85)] backdrop-blur-[12px] flex items-center justify-between px-2 sm:px-4 md:px-6 py-2 md:py-0 gap-2 shrink-0">
   <div class="flex items-center gap-2 sm:gap-3 md:gap-6 min-w-0 overflow-x-auto">
     <button
@@ -15,9 +18,16 @@
     >
       <span class="material-symbols-outlined" style="font-size:20px">menu</span>
     </button>
-    <div class="flex items-center gap-2 shrink-0" title={`v${__APP_VERSION__} (${__GIT_HASH__})`}>
-      <div class="w-7 h-7 bg-nb-accent rounded-md flex items-center justify-center">
-        <span class="material-symbols-outlined text-[#111]" style="font-size:14px">edit_note</span>
+    <div class="logo-mark flex items-center gap-2 shrink-0 cursor-default" title={`v${__APP_VERSION__} (${__GIT_HASH__})`}>
+      <div class="w-7 h-7 bg-nb-accent rounded-md flex items-center justify-center overflow-hidden">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="12" height="12" rx="2" stroke="#111" stroke-width="1.2"/>
+          <line x1="5" y1="5.5" x2="11" y2="5.5" stroke="#111" stroke-width="1" stroke-linecap="round"/>
+          <line x1="5" y1="8" x2="9" y2="8" stroke="#111" stroke-width="1" stroke-linecap="round"/>
+          <line x1="5" y1="10.5" x2="7" y2="10.5" stroke="#111" stroke-width="1" stroke-linecap="round"/>
+          <rect x="10.5" y="8.5" width="1.8" height="5" rx="0.6" fill="#111" opacity="0.9">
+          </rect>
+        </svg>
       </div>
       <h1 class="text-sm font-semibold tracking-[0.08em] uppercase hidden sm:block">Scratchpad</h1>
     </div>
@@ -31,14 +41,13 @@
         >Clear</button>
       </div>
     {:else}
-      <nav class="flex items-center gap-1 text-[11px] md:text-xs font-medium text-nb-muted shrink-0" role="tablist">
+      <nav class="flex items-center gap-0.5 text-[11px] md:text-xs font-medium shrink-0" role="tablist">
         {#each ['all', 'code', 'image', 'text', 'link'] as filter}
           <button
             role="tab"
             aria-selected={clipsState.activeFilter === filter}
             data-filter={filter}
-            class="filter-tab px-1.5 sm:px-2 md:px-3 py-1 transition-colors hover:text-nb-text"
-            class:active-tab={clipsState.activeFilter === filter}
+            class="filter-tab px-1.5 sm:px-2.5 md:px-3 py-1 {clipsState.activeFilter === filter ? 'active-tab' : ''}"
             onclick={() => clipsState.activeFilter = filter}
           >
             {filter === 'all' ? 'All' : filter === 'link' ? 'Links' : filter.charAt(0).toUpperCase() + filter.slice(1) + (filter === 'image' ? 's' : '')}
@@ -48,7 +57,7 @@
     {/if}
   </div>
   <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-    <div class="relative">
+    <div class="relative search-glow rounded-full">
       <span
         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 select-none transition-colors"
         class:text-nb-accent={isSearching}
@@ -77,7 +86,7 @@
       {/if}
     </div>
     <button
-      class="flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-nb-accent/10 border border-nb-accent/20 rounded text-xs text-nb-accent hover:bg-nb-accent/20 transition-colors"
+      class="btn-shimmer flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-nb-accent/10 border border-nb-accent/20 rounded text-xs text-nb-accent hover:bg-nb-accent/20 transition-colors"
       title="Receive a clip via P2P (r)"
       onclick={onReceive}
     >
@@ -85,7 +94,7 @@
       <span class="hidden sm:inline">Receive</span>
     </button>
     <button
-      class="flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-nb-accent/10 border border-nb-accent/20 rounded text-xs text-nb-accent hover:bg-nb-accent/20 transition-colors"
+      class="btn-shimmer flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-nb-accent/10 border border-nb-accent/20 rounded text-xs text-nb-accent hover:bg-nb-accent/20 transition-colors"
       title="New empty clip (n)"
       onclick={onNewClip}
     >
